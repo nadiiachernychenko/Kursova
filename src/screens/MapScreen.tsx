@@ -15,7 +15,7 @@ import {
 import MapView, { Marker, Region } from "react-native-maps";
 import ClusteredMapView from "react-native-map-clustering";
 import * as Location from "expo-location";
-
+import { useAppTheme } from "../lib/theme"; 
 import { CATEGORIES, type WasteCategoryId } from "../data/sorting";
 import { supabase } from "../lib/supabase";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";

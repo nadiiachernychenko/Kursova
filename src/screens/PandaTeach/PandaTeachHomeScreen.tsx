@@ -3,13 +3,16 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Alert } from "react-nati
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useEduProfile } from "../../lib/useEduProfile";
 import { earnEduPoints } from "../../lib/eduApi";
-
+import { useAppTheme } from "../../lib/theme";
 type Nav = any;
 
 export default function PandaTeachHomeScreen() {
   const navigation = useNavigation<Nav>();
   const { points, loading, errorText, refresh } = useEduProfile();
   const [toast, setToast] = useState<string | null>(null);
+
+  const { colors, isDark } = useAppTheme() as any;
+  const styles = useMemo(() => createStyles(colors, !!isDark), [colors, isDark]);
 
   useFocusEffect(
     useCallback(() => {
@@ -62,10 +65,10 @@ export default function PandaTeachHomeScreen() {
       </View>
 
       <View style={styles.grid}>
-        <Card title="🌿 Еко-факти" desc="Швидкі факти — і бонусні бали" onPress={() => navigation.navigate("EcoFacts")} />
-        <Card title="🧠 Міф чи правда?" desc="Вгадай правильно — отримай більше" onPress={() => navigation.navigate("MyTruth")} />
-        <Card title="❓ Панда питає" desc="Короткі питання з варіантами" onPress={() => navigation.navigate("PandaAsks")} />
-        <Card title="🗑️ Сортування" desc="Що куди викидати?" onPress={() => navigation.navigate("Sorting")} />
+        <Card title="🌿 Еко-факти" desc="Швидкі факти — і бонусні бали" onPress={() => navigation.navigate("EcoFacts")} styles={styles} />
+        <Card title="🧠 Міф чи правда?" desc="Вгадай правильно — отримай більше" onPress={() => navigation.navigate("MyTruth")} styles={styles} />
+        <Card title="❓ Панда питає" desc="Короткі питання з варіантами" onPress={() => navigation.navigate("PandaAsks")} styles={styles} />
+        <Card title="🗑️ Сортування" desc="Що куди викидати?" onPress={() => navigation.navigate("Sorting")} styles={styles} />
       </View>
 
       <View style={styles.row}>
@@ -83,7 +86,17 @@ export default function PandaTeachHomeScreen() {
   );
 }
 
-function Card({ title, desc, onPress }: { title: string; desc: string; onPress: () => void }) {
+function Card({
+  title,
+  desc,
+  onPress,
+  styles,
+}: {
+  title: string;
+  desc: string;
+  onPress: () => void;
+  styles: any;
+}) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}>
       <Text style={styles.cardTitle}>{title}</Text>
@@ -93,34 +106,99 @@ function Card({ title, desc, onPress }: { title: string; desc: string; onPress: 
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 32, gap: 14, backgroundColor: "#fff" },
-  hero: {
-    padding: 16,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
-    backgroundColor: "rgba(248,251,249,1)",
-    gap: 10,
-  },
-  title: { fontSize: 26, fontWeight: "900" },
-  subtitle: { fontSize: 13, opacity: 0.75, fontWeight: "700" },
-  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
-  chip: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: "rgba(0,0,0,0.10)", backgroundColor: "white" },
-  chipText: { fontSize: 12, fontWeight: "800", opacity: 0.85 },
-  errorBox: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: "rgba(0,0,0,0.12)", backgroundColor: "white" },
-  errorText: { fontSize: 12, opacity: 0.75, fontWeight: "800" },
-  toast: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: "rgba(0,0,0,0.10)", backgroundColor: "white" },
-  toastText: { fontSize: 12, fontWeight: "900", opacity: 0.85 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
-  card: { width: "48%", padding: 14, borderRadius: 20, borderWidth: 1, borderColor: "rgba(0,0,0,0.10)", backgroundColor: "white", gap: 6 },
-  cardTitle: { fontSize: 14, fontWeight: "900" },
-  cardDesc: { fontSize: 12, opacity: 0.75, fontWeight: "700", lineHeight: 16 },
-  cardHint: { fontSize: 12, fontWeight: "900", opacity: 0.45, marginTop: 2 },
-  row: { gap: 10, marginTop: 2 },
-  primaryBtn: { paddingVertical: 12, borderRadius: 18, borderWidth: 1, alignItems: "center" },
-  primaryBtnText: { fontWeight: "900", fontSize: 13 },
-  secondaryBtn: { paddingVertical: 12, borderRadius: 18, borderWidth: 1, alignItems: "center", opacity: 0.9 },
-  secondaryBtnText: { fontWeight: "900", fontSize: 13, opacity: 0.9 },
-  note: { fontSize: 12, opacity: 0.65, lineHeight: 18, paddingHorizontal: 2 },
-});
+function createStyles(colors: any, isDark: boolean) {
+  const bg = colors?.background ?? (isDark ? "#0E0F11" : "#fff");
+  const card = colors?.card ?? (isDark ? "#15171A" : "white");
+  const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
+  const border = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(0,0,0,0.10)");
+
+  // лёгкая “светло-зелёная” подложка как в твоём hero, но адаптирована под dark
+  const heroBg = isDark ? "rgba(47,111,78,0.14)" : "rgba(248,251,249,1)";
+
+  return StyleSheet.create({
+    container: { padding: 16, paddingBottom: 32, gap: 14, backgroundColor: bg },
+
+    hero: {
+      padding: 16,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: border,
+      backgroundColor: heroBg,
+      gap: 10,
+    },
+
+    title: { fontSize: 26, fontWeight: "900", color: text },
+    subtitle: { fontSize: 13, opacity: 0.75, fontWeight: "700", color: text },
+
+    chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
+    chip: {
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: border,
+      backgroundColor: card,
+    },
+    chipText: { fontSize: 12, fontWeight: "800", opacity: 0.85, color: text },
+
+    errorBox: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(242,243,244,0.14)" : "rgba(0,0,0,0.12)",
+      backgroundColor: card,
+    },
+    errorText: { fontSize: 12, opacity: 0.8, fontWeight: "800", color: text },
+
+    toast: {
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: border,
+      backgroundColor: card,
+    },
+    toastText: { fontSize: 12, fontWeight: "900", opacity: 0.85, color: text },
+
+    grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" },
+    card: {
+      width: "48%",
+      padding: 14,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: border,
+      backgroundColor: card,
+      gap: 6,
+    },
+    cardTitle: { fontSize: 14, fontWeight: "900", color: text },
+    cardDesc: { fontSize: 12, opacity: 0.78, fontWeight: "700", lineHeight: 16, color: text },
+    cardHint: { fontSize: 12, fontWeight: "900", opacity: 0.45, marginTop: 2, color: text },
+
+    row: { gap: 10, marginTop: 2 },
+
+    // кнопки — оставляем “однотипно”, как ты просила (карточный стиль)
+    primaryBtn: {
+      paddingVertical: 12,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: border,
+      backgroundColor: card,
+      alignItems: "center",
+    },
+    primaryBtnText: { fontWeight: "900", fontSize: 13, color: text },
+
+    secondaryBtn: {
+      paddingVertical: 12,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: border,
+      backgroundColor: card,
+      alignItems: "center",
+      opacity: 0.9,
+    },
+    secondaryBtnText: { fontWeight: "900", fontSize: 13, opacity: 0.9, color: text },
+
+    note: { fontSize: 12, opacity: 0.65, lineHeight: 18, paddingHorizontal: 2, color: text },
+  });
+}

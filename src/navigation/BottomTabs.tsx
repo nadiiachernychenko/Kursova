@@ -1,40 +1,99 @@
+import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
+
 import HomeStack from "./HomeStack";
 import SortStack from "./SortStack";
 import MapStack from "./MapStack";
 import PandaTeachStack from "./PandaTeachStack";
+import MoreStack from "./MoreStack";
+
+import { useAppTheme } from "../lib/theme";
+import { useT } from "../lib/i18n";
+
 export type RootTabParamList = {
   Home: undefined;
   Sort: undefined;
-  Map: undefined;
   PandaTeach: undefined;
+  More: undefined;
+  Map: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function BottomTabs() {
+  const { colors, isDark } = useAppTheme();
+  const t = useT();
+
   return (
-    <Tab.Navigator screenOptions={{ headerTitleAlign: "center" }}>
+    <Tab.Navigator
+      screenOptions={{
+        headerTitleAlign: "center",
+        headerStyle: { backgroundColor: colors.bg },
+        headerTitleStyle: { color: colors.textOnDark },
+        headerTintColor: colors.textOnDark,
+
+        tabBarStyle: {
+          backgroundColor: colors.bg,
+          borderTopColor: colors.border,
+        },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.muted,
+      }}
+    >
       <Tab.Screen
         name="Home"
         component={HomeStack}
-        options={{ title: "Головна",headerShown: false  }}
+        options={{
+          headerShown: false,
+          title: t("tabHome"),
+          tabBarLabel: t("tabHome"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
+        }}
       />
 
       <Tab.Screen
         name="Sort"
         component={SortStack}
-        options={{ title: "Сортування", headerShown: false }}
+        options={{
+          headerShown: false,
+          title: t("tabSort"),
+          tabBarLabel: t("tabSort"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="repeat" color={color} size={size} />,
+        }}
       />
-<Tab.Screen
-  name="PandaTeach"
-  component={PandaTeachStack}
-  options={{ title: "🐼 Панда вчить" }}
-/>
+
+      <Tab.Screen
+        name="PandaTeach"
+        component={PandaTeachStack}
+        options={{
+          headerShown: false,
+          title: t("tabPanda"),
+          tabBarLabel: t("tabPanda"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="school" color={color} size={size} />,
+        }}
+      />
+
+      <Tab.Screen
+        name="More"
+        component={MoreStack}
+        options={{
+          headerShown: false, // ✅ убираем “More” сверху
+          title: t("tabMore"),
+          tabBarLabel: t("tabMore"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="menu" color={color} size={size} />,
+        }}
+      />
+
       <Tab.Screen
         name="Map"
         component={MapStack}
-        options={{ title: "Карта", headerShown: false }}
+        options={{
+          headerShown: false,
+          title: t("tabMap"),
+          tabBarLabel: t("tabMap"),
+          tabBarIcon: ({ color, size }) => <Ionicons name="map" color={color} size={size} />,
+        }}
       />
     </Tab.Navigator>
   );

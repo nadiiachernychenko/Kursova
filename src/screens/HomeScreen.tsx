@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { useAppTheme } from "../lib/theme";
 
 import { ensureAuth } from "../lib/auth";
 import { kyivDayKey, uploadProof, upsertEcoDay } from "../lib/ecoStats";
@@ -129,7 +130,7 @@ async function pickImageUri(): Promise<string | null> {
   return res.assets?.[0]?.uri ?? null;
 }
 
-function PandaToast() {
+function PandaToast({ styles }: { styles: any }) {
   const x = useRef(new Animated.Value(84)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -176,6 +177,10 @@ function PandaToast() {
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const greeting = useMemo(() => getGreeting(), []);
+  const { colors, isDark } = useAppTheme() as any;
+
+  const PAL = useMemo(() => makePal(colors, !!isDark), [colors, isDark]);
+  const styles = useMemo(() => createStyles(PAL, !!isDark), [PAL, isDark]);
 
   // ✅ refs внутри компонента
   const proofUriRef = useRef<string | null>(null);
@@ -495,7 +500,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <PandaToast />
+      <PandaToast styles={styles} />
 
       <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* HERO */}
@@ -646,7 +651,7 @@ export default function HomeScreen() {
                   resetChallengeTimer();
                 }}
                 placeholder="Або напиши свій варіант…"
-                placeholderTextColor="rgba(17,18,20,0.38)"
+                placeholderTextColor={PAL.placeholder}
                 style={styles.customInput}
                 multiline
               />
@@ -696,7 +701,9 @@ export default function HomeScreen() {
                 hitSlop={10}
                 style={({ pressed }) => [styles.smallBtn, chDone && styles.smallBtnDisabled, { opacity: pressed ? 0.75 : 1 }]}
               >
-                <Text style={[styles.smallBtnText, chDone && styles.smallBtnTextDisabled]}>{chDone ? "Підтверджено" : "Підтвердити"}</Text>
+                <Text style={[styles.smallBtnText, chDone && styles.smallBtnTextDisabled]}>
+                  {chDone ? "Підтверджено" : "Підтвердити"}
+                </Text>
               </Pressable>
             </View>
 
@@ -727,7 +734,9 @@ export default function HomeScreen() {
                     }}
                     style={({ pressed }) => [styles.timeOption, active && styles.timeOptionActive, { opacity: pressed ? 0.8 : 1 }]}
                   >
-                    <Text style={[styles.timeOptionText, active && styles.timeOptionTextActive]}>{s < 60 ? `${s}s` : `${Math.round(s / 60)} хв`}</Text>
+                    <Text style={[styles.timeOptionText, active && styles.timeOptionTextActive]}>
+                      {s < 60 ? `${s}s` : `${Math.round(s / 60)} хв`}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -770,250 +779,295 @@ const shadow = Platform.select({
   default: {},
 });
 
-const COLORS = {
-  bg: "#F6F7F4",
-  card: "#FFFFFF",
-  text: "#111214",
-  sub: "rgba(17,18,20,0.68)",
-  line: "rgba(17,18,20,0.08)",
-  accent: "#2F6F4E",
-  accentSoft: "#E7F2EC",
-  teal: "#2C7A7B",
+type Pal = {
+  bg: string;
+  card: string;
+  text: string;
+  sub: string;
+  line: string;
+  accent: string;
+  accentSoft: string;
+  teal: string;
+  placeholder: string;
 };
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.bg },
-  screen: { flex: 1, backgroundColor: COLORS.bg },
-  content: { paddingHorizontal: 14, paddingTop: 14 },
+function makePal(colors: any, isDark: boolean): Pal {
+  const accent = "#2F6F4E";
+  const teal = "#2C7A7B";
 
-  hero: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.card,
-    ...shadow,
-    overflow: "hidden",
-  },
-  heroInner: { padding: 14 },
-  heroTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  badge: {
-    backgroundColor: COLORS.accentSoft,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  badgeText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
-  softDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: COLORS.teal, opacity: 0.55 },
+  const bg = colors?.background ?? (isDark ? "#0E0F11" : "#F6F7F4");
+  const card = colors?.card ?? (isDark ? "#15171A" : "#FFFFFF");
+  const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
+  const border = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(17,18,20,0.08)");
 
-  greeting: { fontSize: 14, fontWeight: "900", color: COLORS.text, opacity: 0.85 },
-  heroTitle: { marginTop: 6, fontSize: 20, fontWeight: "900", color: COLORS.text },
-  heroSub: { marginTop: 8, fontSize: 13, color: COLORS.sub, lineHeight: 18 },
+  return {
+    bg,
+    card,
+    text,
+    sub: isDark ? "rgba(242,243,244,0.72)" : "rgba(17,18,20,0.68)",
+    line: border,
+    accent,
+    accentSoft: isDark ? "rgba(47,111,78,0.22)" : "#E7F2EC",
+    teal,
+    placeholder: isDark ? "rgba(242,243,244,0.40)" : "rgba(17,18,20,0.38)",
+  };
+}
 
-  heroCtaRow: { flexDirection: "row", gap: 10, marginTop: 14 },
-  primaryBtn: {
-    backgroundColor: COLORS.text,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 14,
-  },
-  primaryBtnText: { color: "white", fontWeight: "900", fontSize: 13 },
-  secondaryBtn: {
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 14,
-  },
-  secondaryBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
+function createStyles(COLORS: Pal, isDark: boolean) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: COLORS.bg },
+    screen: { flex: 1, backgroundColor: COLORS.bg },
+    content: { paddingHorizontal: 14, paddingTop: 14 },
 
-  sectionHeader: {
-    marginTop: 16,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
-  sectionTitle: { fontSize: 14, fontWeight: "900", color: COLORS.text },
-  sectionHint: { fontSize: 12, color: COLORS.sub, fontWeight: "800" },
+    hero: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      backgroundColor: COLORS.card,
+      ...shadow,
+      overflow: "hidden",
+    },
+    heroInner: { padding: 14 },
+    heroTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 10,
+    },
+    badge: {
+      backgroundColor: COLORS.accentSoft,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    badgeText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
+    softDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: COLORS.teal, opacity: 0.55 },
 
-  linkBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.card,
-  },
-  linkText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
+    greeting: { fontSize: 14, fontWeight: "900", color: COLORS.text, opacity: 0.85 },
+    heroTitle: { marginTop: 6, fontSize: 20, fontWeight: "900", color: COLORS.text },
+    heroSub: { marginTop: 8, fontSize: 13, color: COLORS.sub, lineHeight: 18 },
 
-  progressCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.card,
-    padding: 14,
-    ...shadow,
-  },
-  progressTop: { flexDirection: "row", gap: 12 },
-  progressLeft: { flex: 1 },
-  progressRight: { width: 88, alignItems: "flex-end" },
-  progressTitle: { fontSize: 12, fontWeight: "900", color: COLORS.sub },
-  progressValue: { marginTop: 6, fontSize: 18, fontWeight: "900", color: COLORS.text },
+    heroCtaRow: { flexDirection: "row", gap: 10, marginTop: 14 },
+   primaryBtn: {
+  backgroundColor: COLORS.card,
+  borderWidth: 1,
+  borderColor: COLORS.line,
+  borderRadius: 14,
+  paddingVertical: 12,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingHorizontal: 14,
+},
+primaryBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
 
-  progressBar: {
-    marginTop: 12,
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: "rgba(17,18,20,0.06)",
-    overflow: "hidden",
-  },
-  progressFill: { height: "100%", borderRadius: 999, backgroundColor: COLORS.accent },
 
-  proofRow: { marginTop: 12, flexDirection: "row", alignItems: "center", gap: 10 },
-  proofTitle: { fontSize: 12, fontWeight: "900", color: COLORS.text },
-  proofSub: { marginTop: 4, fontSize: 12, fontWeight: "800", color: COLORS.sub, lineHeight: 16 },
+    secondaryBtn: {
+      backgroundColor: COLORS.card,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      borderRadius: 14,
+      paddingVertical: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 14,
+    },
+    secondaryBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
 
-  proofThumbWrap: { position: "relative" },
-  proofThumb: { width: 54, height: 54, borderRadius: 14, backgroundColor: "rgba(0,0,0,0.06)" },
-  proofX: {
-    position: "absolute",
-    right: -6,
-    top: -6,
-    width: 22,
-    height: 22,
-    borderRadius: 999,
-    backgroundColor: COLORS.text,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  proofXText: { color: "white", fontWeight: "900", fontSize: 12 },
+    sectionHeader: {
+      marginTop: 16,
+      marginBottom: 10,
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
+    },
+    sectionTitle: { fontSize: 14, fontWeight: "900", color: COLORS.text },
+    sectionHint: { fontSize: 12, color: COLORS.sub, fontWeight: "800" },
 
-  progressRow: { marginTop: 10, flexDirection: "row", alignItems: "center", gap: 10 },
-  progressHint: { flex: 1, fontSize: 12, color: COLORS.sub, fontWeight: "800", lineHeight: 16 },
+    linkBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      backgroundColor: COLORS.card,
+    },
+    linkText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
 
-  smallBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(47,111,78,0.20)",
-    backgroundColor: COLORS.accentSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  smallBtnDisabled: { backgroundColor: "rgba(17,18,20,0.06)", borderColor: "rgba(17,18,20,0.10)" },
-  smallBtnText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
-  smallBtnTextDisabled: { color: "rgba(17,18,20,0.55)" },
+    progressCard: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      backgroundColor: COLORS.card,
+      padding: 14,
+      ...shadow,
+    },
+    progressTop: { flexDirection: "row", gap: 12 },
+    progressLeft: { flex: 1 },
+    progressRight: { width: 88, alignItems: "flex-end" },
+    progressTitle: { fontSize: 12, fontWeight: "900", color: COLORS.sub },
+    progressValue: { marginTop: 6, fontSize: 18, fontWeight: "900", color: COLORS.text },
 
-  card: { borderRadius: 22, borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.card, ...shadow },
-  cardTop: { flexDirection: "row", gap: 10, padding: 14 },
-  cardEmoji: { fontSize: 20 },
-  cardTitle: { fontSize: 14, fontWeight: "900", color: COLORS.text },
-  cardText: { marginTop: 6, fontSize: 13, color: COLORS.sub, lineHeight: 18 },
-  cardFooter: { paddingHorizontal: 14, paddingBottom: 14 },
-  pill: { alignSelf: "flex-start", backgroundColor: COLORS.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-  pillText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
+    progressBar: {
+      marginTop: 12,
+      height: 10,
+      borderRadius: 999,
+      backgroundColor: isDark ? "rgba(242,243,244,0.10)" : "rgba(17,18,20,0.06)",
+      overflow: "hidden",
+    },
+    progressFill: { height: "100%", borderRadius: 999, backgroundColor: COLORS.accent },
 
-  challenge: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.card,
-    padding: 14,
-    ...shadow,
-    overflow: "hidden",
-  },
-  challengeLeft: { flex: 1 },
-  challengeTitle: { fontSize: 13, fontWeight: "900", color: COLORS.text },
-  challengeText: { marginTop: 6, fontSize: 13, color: COLORS.sub, lineHeight: 18 },
+    proofRow: { marginTop: 12, flexDirection: "row", alignItems: "center", gap: 10 },
+    proofTitle: { fontSize: 12, fontWeight: "900", color: COLORS.text },
+    proofSub: { marginTop: 4, fontSize: 12, fontWeight: "800", color: COLORS.sub, lineHeight: 16 },
 
-  wow: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    zIndex: 10,
-    backgroundColor: COLORS.card,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
-    ...shadow,
-  },
-  wowText: { fontWeight: "900", color: COLORS.text },
+    proofThumbWrap: { position: "relative" },
+    proofThumb: {
+      width: 54,
+      height: 54,
+      borderRadius: 14,
+      backgroundColor: isDark ? "rgba(242,243,244,0.10)" : "rgba(0,0,0,0.06)",
+    },
+    proofX: {
+      position: "absolute",
+      right: -6,
+      top: -6,
+      width: 22,
+      height: 22,
+      borderRadius: 999,
+      backgroundColor: COLORS.text,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    proofXText: { color: COLORS.card, fontWeight: "900", fontSize: 12 },
 
-  customBox: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    backgroundColor: "rgba(17,18,20,0.02)",
-    borderRadius: 16,
-    padding: 10,
-  },
-  customInput: { minHeight: 44, fontSize: 13, fontWeight: "800", color: COLORS.text, lineHeight: 18 },
+    progressRow: { marginTop: 10, flexDirection: "row", alignItems: "center", gap: 10 },
+    progressHint: { flex: 1, fontSize: 12, color: COLORS.sub, fontWeight: "800", lineHeight: 16 },
 
-  timerRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  timerChip: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.card },
-  timerChipText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
+    smallBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(47,111,78,0.28)" : "rgba(47,111,78,0.20)",
+      backgroundColor: COLORS.accentSoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    smallBtnDisabled: { backgroundColor: isDark ? "rgba(242,243,244,0.10)" : "rgba(17,18,20,0.06)", borderColor: isDark ? "rgba(242,243,244,0.18)" : "rgba(17,18,20,0.10)" },
+    smallBtnText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
+    smallBtnTextDisabled: { color: isDark ? "rgba(242,243,244,0.55)" : "rgba(17,18,20,0.55)" },
 
-  timeBtn: {
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timeBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 12 },
+    card: { borderRadius: 22, borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.card, ...shadow },
+    cardTop: { flexDirection: "row", gap: 10, padding: 14 },
+    cardEmoji: { fontSize: 20 },
+    cardTitle: { fontSize: 14, fontWeight: "900", color: COLORS.text },
+    cardText: { marginTop: 6, fontSize: 13, color: COLORS.sub, lineHeight: 18 },
+    cardFooter: { paddingHorizontal: 14, paddingBottom: 14 },
+    pill: { alignSelf: "flex-start", backgroundColor: COLORS.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+    pillText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
 
-  challengeBtn: { backgroundColor: COLORS.text, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, alignItems: "center", justifyContent: "center", minWidth: 110 },
-  challengeBtnText: { color: "white", fontWeight: "900", fontSize: 12 },
+    challenge: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      backgroundColor: COLORS.card,
+      padding: 14,
+      ...shadow,
+      overflow: "hidden",
+    },
+    challengeLeft: { flex: 1 },
+    challengeTitle: { fontSize: 13, fontWeight: "900", color: COLORS.text },
+    challengeText: { marginTop: 6, fontSize: 13, color: COLORS.sub, lineHeight: 18 },
 
-  challengeBtnAlt: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, alignItems: "center", justifyContent: "center", minWidth: 110 },
-  challengeBtnAltText: { color: COLORS.text, fontWeight: "900", fontSize: 12 },
+    wow: {
+      position: "absolute",
+      top: 10,
+      right: 10,
+      zIndex: 10,
+      backgroundColor: COLORS.card,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      ...shadow,
+    },
+    wowText: { fontWeight: "900", color: COLORS.text },
 
-  challengeFooterRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+    customBox: {
+      marginTop: 10,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      backgroundColor: isDark ? "rgba(242,243,244,0.06)" : "rgba(17,18,20,0.02)",
+      borderRadius: 16,
+      padding: 10,
+    },
+    customInput: { minHeight: 44, fontSize: 13, fontWeight: "800", color: COLORS.text, lineHeight: 18 },
 
-  chToastText: { marginTop: 8, fontSize: 12, fontWeight: "900", color: COLORS.accent, opacity: 0.95 },
+    timerRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+    timerChip: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.card },
+    timerChipText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
 
-  pandaWrap: { position: "absolute", right: -6, top: 78, zIndex: 999, alignItems: "flex-end" },
-  pandaEmoji: { fontSize: 56 },
-  pandaBubble: {
-    marginTop: -6,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    maxWidth: 240,
-    ...shadow,
-  },
-  pandaText: { fontSize: 12, fontWeight: "900", color: "rgba(0,0,0,0.78)" },
-  pandaTextSub: { marginTop: 3, fontSize: 11, fontWeight: "800", color: "rgba(0,0,0,0.55)" },
+    timeBtn: {
+      backgroundColor: COLORS.card,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    timeBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 12 },
 
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.25)", padding: 14, justifyContent: "center" },
-  modalCard: { backgroundColor: COLORS.card, borderRadius: 22, borderWidth: 1, borderColor: "rgba(0,0,0,0.10)", padding: 14, ...shadow },
-  modalTitle: { fontSize: 16, fontWeight: "900", color: COLORS.text, marginBottom: 8 },
-  modalText: { fontSize: 13, color: COLORS.sub, lineHeight: 18, fontWeight: "700" },
-  modalClose: { alignSelf: "flex-end", marginTop: 12, borderWidth: 1, borderColor: COLORS.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: COLORS.card },
-  modalCloseText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
+    challengeBtn: {
+  backgroundColor: COLORS.card,
+  borderWidth: 1,
+  borderColor: COLORS.line,
+  borderRadius: 14,
+  paddingHorizontal: 14,
+  paddingVertical: 10,
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 110,
+},
+challengeBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 12 },
 
-  timeOption: { borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.card, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
-  timeOptionActive: { backgroundColor: COLORS.accentSoft, borderColor: "rgba(47,111,78,0.20)" },
-  timeOptionText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
-  timeOptionTextActive: { color: COLORS.accent },
-});
+
+    challengeBtnAlt: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, alignItems: "center", justifyContent: "center", minWidth: 110 },
+    challengeBtnAltText: { color: COLORS.text, fontWeight: "900", fontSize: 12 },
+
+    challengeFooterRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+
+    chToastText: { marginTop: 8, fontSize: 12, fontWeight: "900", color: COLORS.accent, opacity: 0.95 },
+
+    pandaWrap: { position: "absolute", right: -6, top: 78, zIndex: 999, alignItems: "flex-end" },
+    pandaEmoji: { fontSize: 56 },
+    pandaBubble: {
+      marginTop: -6,
+      marginRight: 10,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      backgroundColor: COLORS.card,
+      borderRadius: 14,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      maxWidth: 240,
+      ...shadow,
+    },
+    pandaText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
+    pandaTextSub: { marginTop: 3, fontSize: 11, fontWeight: "800", color: COLORS.sub },
+
+    modalBackdrop: { flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.65)" : "rgba(0,0,0,0.25)", padding: 14, justifyContent: "center" },
+    modalCard: { backgroundColor: COLORS.card, borderRadius: 22, borderWidth: 1, borderColor: COLORS.line, padding: 14, ...shadow },
+    modalTitle: { fontSize: 16, fontWeight: "900", color: COLORS.text, marginBottom: 8 },
+    modalText: { fontSize: 13, color: COLORS.sub, lineHeight: 18, fontWeight: "700" },
+    modalClose: { alignSelf: "flex-end", marginTop: 12, borderWidth: 1, borderColor: COLORS.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: COLORS.card },
+    modalCloseText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
+
+    timeOption: { borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.card, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
+    timeOptionActive: { backgroundColor: COLORS.accentSoft, borderColor: isDark ? "rgba(47,111,78,0.28)" : "rgba(47,111,78,0.20)" },
+    timeOptionText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
+    timeOptionTextActive: { color: COLORS.accent },
+  });
+}

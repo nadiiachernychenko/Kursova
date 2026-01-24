@@ -1,11 +1,14 @@
+import "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { View, ActivityIndicator, useColorScheme } from "react-native";
+import { NavigationContainer, DefaultTheme, DarkTheme } from "@react-navigation/native";
 import * as Linking from "expo-linking";
 
 import { supabase } from "./src/lib/supabase";
 import BottomTabs from "./src/navigation/BottomTabs";
 import AuthScreen from "./src/screens/AuthScreen";
+import { SettingsProvider, useSettings } from "./src/context/SettingsContext";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 function getParam(url: string, key: string) {
   const re = new RegExp(`[?#&]${key}=([^&]+)`);
@@ -14,8 +17,23 @@ function getParam(url: string, key: string) {
 }
 
 export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SettingsProvider>
+        <AppRoot />
+      </SettingsProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+
+function AppRoot() {
+  // ✅ хуки вызываются ВСЕГДА, без раннего return до хуков
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+
+  const system = useColorScheme();
+  const { theme } = useSettings();
 
   useEffect(() => {
     let mounted = true;
@@ -67,6 +85,8 @@ export default function App() {
     };
   }, []);
 
+  const resolvedTheme = theme === "system" ? (system ?? "dark") : theme;
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -76,7 +96,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={resolvedTheme === "dark" ? DarkTheme : DefaultTheme}>
       {hasSession ? <BottomTabs /> : <AuthScreen />}
     </NavigationContainer>
   );
