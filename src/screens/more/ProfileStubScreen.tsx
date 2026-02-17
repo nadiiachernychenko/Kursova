@@ -59,7 +59,7 @@ export function ProfileStubScreen() {
   const [birth, setBirth] = useState(""); // DD.MM.YYYY
 
   const [country, setCountry] = useState<Country>(COUNTRIES[0]);
-  const [phone, setPhone] = useState(""); // всегда из базы; если в базе пусто — пусто
+  const [phone, setPhone] = useState(""); 
 
   const [genderOpen, setGenderOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
@@ -67,7 +67,6 @@ export function ProfileStubScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // чтобы не писать в базу до первичной загрузки
   const hydratedRef = useRef(false);
   const saveTimerRef = useRef<any>(null);
 
@@ -108,10 +107,10 @@ export function ProfileStubScreen() {
           : null;
         if (found) setCountry(found);
 
-        // важно: если в базе пусто, тут будет "", и поле останется пустым
+        
         setPhone((prof.phone ?? "").toString());
       } else {
-        // если записи нет — оставляем дефолты (UA, пустой телефон)
+        
       }
 
       hydratedRef.current = true;
@@ -150,7 +149,7 @@ export function ProfileStubScreen() {
         gender: gender ?? null,
         birth_date: birthISO,
         country_code: country.code,
-        phone: phone.trim(), // если пусто — останется пусто
+        phone: phone.trim(), 
       };
 
       const { error } = await supabase.from("profiles").upsert(payload, {
@@ -158,9 +157,6 @@ export function ProfileStubScreen() {
       });
 
       setSaving(false);
-
-      // если надо — можно показать тост/сообщение, но пока тихо:
-      // if (error) console.log(error);
     }, 700);
   };
 
@@ -544,7 +540,7 @@ function createStyles(C: Pal) {
       flexDirection: "row",
       alignItems: "center",
       gap: 10,
-      paddingVertical: 10, // компактнее
+      paddingVertical: 10,
       borderBottomWidth: 1,
       borderBottomColor: C.border,
     },
@@ -560,7 +556,7 @@ function createStyles(C: Pal) {
       fontSize: 16,
       fontWeight: "800",
       color: C.text,
-      paddingVertical: 4, // компактнее
+      paddingVertical: 4, 
     },
     disabled: { opacity: 0.6 },
 
@@ -580,7 +576,7 @@ function createStyles(C: Pal) {
       alignItems: "center",
       gap: 7,
       paddingHorizontal: 10,
-      paddingVertical: 9, // компактнее
+      paddingVertical: 9, 
       borderRadius: 14,
       borderWidth: 1,
       borderColor: C.border,
@@ -593,7 +589,7 @@ function createStyles(C: Pal) {
 
     deleteBtn: {
       marginTop: 16,
-      paddingVertical: 12, // компактнее
+      paddingVertical: 12,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: C.border,
@@ -630,7 +626,7 @@ function createStyles(C: Pal) {
       borderColor: C.border,
       backgroundColor: C.card,
       alignItems: "center",
-      paddingVertical: 14, // компактнее
+      paddingVertical: 14, 
       gap: 6,
     },
     genderIcon: { fontSize: 30 },

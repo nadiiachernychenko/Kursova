@@ -112,7 +112,6 @@ function createStyles(colors: any, isDark: boolean) {
   const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
   const border = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(0,0,0,0.10)");
 
-  // лёгкая “светло-зелёная” подложка как в твоём hero, но адаптирована под dark
   const heroBg = isDark ? "rgba(47,111,78,0.14)" : "rgba(248,251,249,1)";
 
   return StyleSheet.create({
@@ -177,7 +176,6 @@ function createStyles(colors: any, isDark: boolean) {
 
     row: { gap: 10, marginTop: 2 },
 
-    // кнопки — оставляем “однотипно”, как ты просила (карточный стиль)
     primaryBtn: {
       paddingVertical: 12,
       borderRadius: 18,

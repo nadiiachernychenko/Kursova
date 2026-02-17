@@ -14,7 +14,6 @@ export default function PandaShopScreen() {
     (async () => {
       try {
         const list = await getShopItems();
-        // если таблицы нет — покажем дефолт
         if (!list?.length) {
           setItems([
             { id: "leaf_hat", title: "🌿 Листочок на голову", cost: 40 },

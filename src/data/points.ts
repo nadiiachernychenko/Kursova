@@ -10,7 +10,6 @@ export type EcoPoint = {
   note?: string;
 };
 
-// ДЕМО точки (можно расширять). Координаты примерные по Киеву.
 export const POINTS: EcoPoint[] = [
   {
     id: "p1",

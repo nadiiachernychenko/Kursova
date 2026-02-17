@@ -1,14 +1,12 @@
-// src/lib/ecoStats.ts
 import { supabase } from "./supabase";
 import { ensureAuth } from "./auth";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { decode } from "base64-arraybuffer";
 
-const BUCKET = "proofs";// или "proofs" если реально грузишь туда
+const BUCKET = "proofs";
 
-// -------------------- types --------------------
 export type EcoDayUpsert = {
-  day: string; // YYYY-MM-DD
+  day: string; 
   eco_done?: boolean;
   eco_proof_url?: string | null;
 
@@ -35,16 +33,11 @@ export type EcoDayRow = {
   updated_at?: string;
 };
 
-// -------------------- day utils --------------------
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * Надёжно получает YYYY-MM-DD для Europe/Kyiv без toLocaleString,
- * чтобы НЕ получать NaN-NaN-NaN на Android/Hermes.
- */
+
 function formatDayInKyiv(date: Date): string | null {
   try {
-    // formatToParts обычно работает стабильнее, чем toLocaleString->new Date(...)
     const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Europe/Kyiv",
       year: "numeric",
@@ -64,16 +57,11 @@ function formatDayInKyiv(date: Date): string | null {
   }
 }
 
-/**
- * Всегда возвращает валидный YYYY-MM-DD (без NaN),
- * fallback — локальная дата устройства.
- */
+
 export function kyivDayKey(input: any = new Date()): string {
   const base = input instanceof Date ? input : new Date(input);
 
-  // если base вообще Invalid Date
   if (!(base instanceof Date) || Number.isNaN(base.getTime())) {
-    // fallback: локальная сегодняшняя дата
     const now = new Date();
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, "0");
@@ -84,7 +72,6 @@ export function kyivDayKey(input: any = new Date()): string {
   const kyiv = formatDayInKyiv(base);
   if (kyiv) return kyiv;
 
-  // fallback если Intl/timeZone недоступны
   const y = base.getFullYear();
   const m = String(base.getMonth() + 1).padStart(2, "0");
   const d = String(base.getDate()).padStart(2, "0");
@@ -98,7 +85,6 @@ function assertDay(day: string) {
   }
 }
 
-// -------------------- auth cache --------------------
 let cachedUserId: string | null = null;
 
 async function requireUserId(): Promise<string> {
@@ -109,7 +95,6 @@ async function requireUserId(): Promise<string> {
   return user.id;
 }
 
-// -------------------- file helpers --------------------
 function guessExt(uri: string) {
   const m = uri.toLowerCase().match(/\.(jpg|jpeg|png|webp|heic|heif|jfif)(\?.*)?$/);
   if (!m) return "jpg";
@@ -128,15 +113,12 @@ function guessContentType(uri: string) {
 
 
 async function getPublicOrSignedUrl(path: string): Promise<string> {
-  // всегда signed — меньше магии и “почему не грузится”
   const signed = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 24 * 7);
   if (signed.error) throw signed.error;
   if (!signed.data?.signedUrl) throw new Error("No signed URL");
   return signed.data.signedUrl;
 }
 
-
-// -------------------- upload --------------------
 export async function uploadProof(
   kind: "eco" | "challenge",
   localUri: string,
@@ -145,16 +127,11 @@ export async function uploadProof(
   assertDay(day);
   const userId = await requireUserId();
 
-  // читаем как base64
-// читаем как base64
 const b64 = await FileSystem.readAsStringAsync(localUri, {
   encoding: "base64" as any,
 });
 
-// важно: декодируем base64 → ArrayBuffer
 const bytes = decode(b64);
-
-
 
   const ext = guessExt(localUri);
   const contentType = guessContentType(localUri);
@@ -182,7 +159,6 @@ if (upload.error) {
   return url;
 }
 
-// -------------------- db --------------------
 export async function getEcoDay(day: string): Promise<EcoDayRow | null> {
   assertDay(day);
   const userId = await requireUserId();
@@ -221,7 +197,6 @@ export async function upsertEcoDay(payload: EcoDayUpsert): Promise<EcoDayRow> {
         : existing?.challenge_text ?? null,
   };
 
-  // не затираем null
   merged.eco_proof_url = payload.eco_proof_url ? payload.eco_proof_url : existing?.eco_proof_url ?? null;
   merged.challenge_proof_url = payload.challenge_proof_url
     ? payload.challenge_proof_url
@@ -238,7 +213,6 @@ export async function upsertEcoDay(payload: EcoDayUpsert): Promise<EcoDayRow> {
 }
 
 export async function getEcoDaysRange(fromDay: string, toDay: string): Promise<EcoDayRow[]> {
-  // ВАЖНО: чтобы не было NaN-NaN-NaN в запросе
   assertDay(fromDay);
   assertDay(toDay);
 
@@ -265,7 +239,6 @@ export async function getLastNDays(n: number): Promise<EcoDayRow[]> {
   d.setDate(d.getDate() - (n - 1));
   const from = kyivDayKey(d);
 
-  // защита
   assertDay(from);
   assertDay(to);
 

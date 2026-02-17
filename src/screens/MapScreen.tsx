@@ -65,15 +65,12 @@ export default function MapScreen({ route }: any) {
   const [points, setPoints] = useState<EcoPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // режим “показывать только выбранную точку” (из Обраного)
   const [focusOnly, setFocusOnly] = useState(false);
 
-  // UI modals
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  // --- GEO (получаем позицию, но НЕ центрируем автоматически) ---
   useEffect(() => {
     (async () => {
       try {
@@ -138,7 +135,6 @@ export default function MapScreen({ route }: any) {
     return data as EcoPoint;
   }, []);
 
-  // обычная загрузка (если не focusOnly)
   useEffect(() => {
     if (focusOnly) return;
     setSelectedPoint(null);
@@ -157,7 +153,6 @@ export default function MapScreen({ route }: any) {
     });
   }, []);
 
-  // ✅ когда пришли из "Обране"
   useFocusEffect(
     useCallback(() => {
       const focusId: string | undefined = route?.params?.focusId;
@@ -223,7 +218,6 @@ export default function MapScreen({ route }: any) {
     await loadPoints(selected);
   };
 
-  // --- Search suggestions ---
   const suggestions = useMemo(() => {
     const q = norm(query);
     if (!q) return [];
@@ -251,12 +245,12 @@ const renderCluster = useCallback((cluster: any) => {
     <Marker
       key={`cluster-${id}`}
       coordinate={coordinate}
-      tracksViewChanges={true} // ✅ для кластеров оставляем true
+      tracksViewChanges={true}
       anchor={{ x: 0.5, y: 0.5 }}
     >
       <View
-        collapsable={false} // ✅ важно
-        renderToHardwareTextureAndroid // ✅ важно
+        collapsable={false} 
+        renderToHardwareTextureAndroid 
         style={styles.clusterOuter}
       >
         <Text
@@ -620,7 +614,7 @@ const styles = StyleSheet.create({
   width: 56,
   height: 56,
   borderRadius: 28,
-  padding: 2, // ✅ буфер
+  padding: 2, 
   backgroundColor: "#111",
   borderWidth: 3,
   borderColor: "rgba(255,255,255,0.92)",
@@ -638,7 +632,7 @@ clusterText: {
   color: "white",
   fontWeight: "900",
   fontSize: 16,
-  lineHeight: 18,            // ✅ чуть больше lineHeight
+  lineHeight: 18,            
   includeFontPadding: false,
   textAlign: "center",
   textAlignVertical: "center",

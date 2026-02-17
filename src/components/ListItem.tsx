@@ -10,16 +10,24 @@ type Props = {
   onPress?: () => void;
   rightText?: string;
   danger?: boolean;
+    showChevron?: boolean;
+
 };
 
-export function ListItem({ icon, title, subtitle, onPress, rightText, danger }: Props) {
+export function ListItem({ icon, title, subtitle, onPress, rightText, danger, showChevron = true }: Props) {
   const { colors } = useAppTheme();
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed, {
-      backgroundColor: colors.card,
-      borderColor: colors.border,
-    }]}>
+   <Pressable
+  hitSlop={12}
+  onPress={onPress}
+  style={({ pressed }) => [
+    styles.row,
+    pressed && styles.pressed,
+    { backgroundColor: colors.card, borderColor: colors.border },
+  ]}
+>
+
       <View style={styles.left}>
         <View style={[styles.iconWrap, { borderColor: colors.border, backgroundColor: "transparent" }]}>
           <Ionicons name={icon} size={18} color={danger ? colors.danger : colors.muted} />
@@ -39,7 +47,7 @@ export function ListItem({ icon, title, subtitle, onPress, rightText, danger }: 
 
       <View style={styles.right}>
         {!!rightText && <Text style={[styles.rightText, { color: colors.muted }]}>{rightText}</Text>}
-        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        {showChevron && <Ionicons name="chevron-forward" size={18} color={colors.muted} />}
       </View>
     </Pressable>
   );

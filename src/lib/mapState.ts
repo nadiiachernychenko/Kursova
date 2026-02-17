@@ -24,7 +24,6 @@ export async function saveMapState(state: MapSavedState): Promise<void> {
   try {
     await AsyncStorage.setItem(KEY, JSON.stringify(state));
   } catch {
-    // ignore
   }
 }
 
@@ -32,6 +31,5 @@ export async function clearMapState(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEY);
   } catch {
-    // ignore
   }
 }

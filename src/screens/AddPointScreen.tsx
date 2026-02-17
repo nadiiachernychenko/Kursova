@@ -31,7 +31,6 @@ function normalizeAddress(a: string) {
   const s = a.trim();
   if (!s) return s;
   const lower = s.toLowerCase();
-  // если человек не написал "київ/kyiv", дописываем
   if (!lower.includes("київ") && !lower.includes("kyiv")) {
     return `${s}, Київ`;
   }
@@ -86,7 +85,6 @@ export default function AddPointScreen({ navigation }: any) {
 
       const res = await fetch(url, {
         headers: {
-          // Nominatim просит User-Agent
           "User-Agent": "EcoLifeApp/1.0",
           "Accept-Language": "uk",
         },

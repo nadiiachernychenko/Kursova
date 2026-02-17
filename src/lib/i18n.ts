@@ -2,7 +2,6 @@ import { useSettings } from "../context/SettingsContext";
 import { FeedbackScreen } from "../screens/more/FeedbackScreen";
 
 const ua = {
-  // --- твои старые ключи ---
   profile: "Мій профіль",
   ecoLevel: "Мій еко-рівень",
   tabHome: "Головна",
@@ -14,6 +13,44 @@ const ua = {
   userSection: "КОРИСТУВАЧ",
   goodDeeds: "Історія добрих справ",
   goodDeedsSub: "Усі твої еко-дії та бали",
+  ecoLevelLevelLabel: "РІВЕНЬ",
+  ecoLevelTotalPoints: "ВСЬОГО ECO POINTS",
+  ecoLevelDaysInApp: "ДНІВ У ЗАСТОСУНКУ",
+
+  ecoLevelHowBtn: "Як це працює?",
+  ecoLevelHowSub: "Щоб бали та рівень не здавались випадковими",
+
+  ecoLevelHowTitle: "Як працює Eco-Level",
+  ecoLevelHowLead: "Ти робиш еко-дії → отримуєш eco points → піднімається рівень. Просто і чесно.",
+  ecoLevelHowPointsTitle: "Звідки беруться eco points",
+
+  ecoLevelRuleEcoDay: "Еко-дія за день: +10 екобалів",
+  ecoLevelRuleChallenge: "Челендж за день: +20 екобалів",
+  ecoLevelRuleEcoProof: "Фото-пруф еко-дії: +5 екобалів",
+  ecoLevelRuleChallengeProof: "Фото-пруф челенджу: +5 екобалів",
+
+  ecoLevelTipPoints: "Лайфхак: стабільність важливіша за “ідеальність”. 1 дія щодня = швидкий прогрес.",
+  ecoLevelHowLevelTitle: "Коли росте рівень",
+  ecoLevelRuleLevel100: "Кожні 100 eco points = +1 рівень.",
+  ecoLevelExamples: "Приклад:\n0–99 → Level 1\n100–199 → Level 2\n200–299 → Level 3",
+
+  ecoLevelHowDaysTitle: "Що таке “ДНІВ У ЗАСТОСУНКУ”",
+  ecoLevelRuleDaysInApp: "Це кількість днів від моменту реєстрації в застосунку.",
+
+  ecoLevelGotIt: "Ок, зрозуміло",
+
+  ecoLevelErrorTitle: "Щось пішло не так",
+  ecoLevelLoadingLine: "Підтягуємо твою статистику…",
+  ecoLevelErrorLine: "Не вдалося завантажити дані",
+  ecoLevelZeroLine: "Старт з нуля. Зроби першу еко-дію — і цифри оживуть 🌱",
+  ecoLevelUnder100Line: "Ти вже на шляху до наступного рівня. Маленькі кроки — це сила ✨",
+  ecoLevelNiceLine: "Класний темп. Ти реально формуєш звичку 🌿",
+
+  ecoLevelTitleStarter: "Starter",
+  ecoLevelTitleExplorer: "Explorer",
+  ecoLevelTitleBuilder: "Builder",
+  ecoLevelTitleAdvocate: "Advocate",
+  ecoLevelTitleHero: "Hero",
 
   settings: "НАЛАШТУВАННЯ",
   theme: "Тема",
@@ -60,7 +97,6 @@ feedbackNote:
   dark: "Темна",
   system: "Автоматична",
 
-  // --- FAQ ключи (добавляешь снизу) ---
   faqTitle: "Часті питання",
   faqSearchPh: "Пошук: нагадування, бали, профіль…",
   faqAll: "Усі",
@@ -120,7 +156,6 @@ faqA_phone_optional:
 type Keys = keyof typeof ua;
 
 const en: Record<Keys, string> = {
-  // обязано содержать ВСЕ те же ключи что ua
   profile: "My profile",
   ecoLevel: "My eco level",
   tabHome: "Home",
@@ -137,6 +172,44 @@ const en: Record<Keys, string> = {
   theme: "Theme",
   reminders: "Reminders",
   language: "Language",
+  ecoLevelLevelLabel: "LEVEL",
+  ecoLevelTotalPoints: "TOTAL ECO POINTS",
+  ecoLevelDaysInApp: "DAYS IN APP",
+
+  ecoLevelHowBtn: "How does it work?",
+  ecoLevelHowSub: "So points and levels don’t feel random",
+
+  ecoLevelHowTitle: "How Eco-Level works",
+  ecoLevelHowLead: "You do eco actions → you earn eco points → your level goes up.",
+  ecoLevelHowPointsTitle: "Where eco points come from",
+
+  ecoLevelRuleEcoDay: "Eco action in a day: +10 eco points",
+  ecoLevelRuleChallenge: "Challenge in a day: +20 eco points",
+  ecoLevelRuleEcoProof: "Photo proof for eco action: +5 eco points",
+  ecoLevelRuleChallengeProof: "Photo proof for challenge: +5 eco points",
+
+  ecoLevelTipPoints: "Tip: consistency beats perfection. One small action daily = fast progress.",
+  ecoLevelHowLevelTitle: "When the level increases",
+  ecoLevelRuleLevel100: "Every 100 eco points = +1 level.",
+  ecoLevelExamples: "Example:\n0–99 → Level 1\n100–199 → Level 2\n200–299 → Level 3",
+
+  ecoLevelHowDaysTitle: "What “Days in app” means",
+  ecoLevelRuleDaysInApp: "It’s the number of days since you registered in the app.",
+
+  ecoLevelGotIt: "Got it",
+
+  ecoLevelErrorTitle: "Something went wrong",
+  ecoLevelLoadingLine: "Loading your stats…",
+  ecoLevelErrorLine: "Couldn’t load data",
+  ecoLevelZeroLine: "Fresh start. Complete your first eco action and the numbers will come alive 🌱",
+  ecoLevelUnder100Line: "You’re on the way to the next level. Small steps are powerful ✨",
+  ecoLevelNiceLine: "Nice pace. You’re building a real habit 🌿",
+
+  ecoLevelTitleStarter: "Starter",
+  ecoLevelTitleExplorer: "Explorer",
+  ecoLevelTitleBuilder: "Builder",
+  ecoLevelTitleAdvocate: "Advocate",
+  ecoLevelTitleHero: "Hero",
 
   support: "SUPPORT",
  supportTitle: "Support",

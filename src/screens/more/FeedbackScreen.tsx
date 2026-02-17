@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useT } from "../../lib/i18n";
 
 export function FeedbackScreen() {
-  const t = useT(); // ✅ ВНУТРИ компонента
+  const t = useT(); 
 
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");

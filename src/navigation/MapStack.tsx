@@ -9,7 +9,6 @@ import MyPointsScreen from "../screens/MyPointsScreen";
 import FavoritesScreen from "../screens/FavoritesScreen";
 
 export type MapStackParamList = {
-  // ✅ ВАЖНО: MapMain принимает параметры фокуса
   MapMain:
     | undefined
     | {

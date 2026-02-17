@@ -8,10 +8,8 @@ type Ok = { ok: true; id?: string };
 type Fail = { ok: false; reason: "expo-go" | "no_permission" | "not_supported" };
 
 export async function enableDailyReminder(): Promise<Ok | Fail> {
-  // ✅ В Expo Go НЕ используем notifications вообще → нет красного error
   if (isExpoGo()) return { ok: false, reason: "expo-go" };
 
-  // ✅ Динамический импорт — чтобы Expo Go не грузил модуль
   const Notifications = await import("expo-notifications");
 
   const perm = await Notifications.getPermissionsAsync();

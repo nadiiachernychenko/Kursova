@@ -78,7 +78,7 @@ export default function BottomTabs() {
         name="More"
         component={MoreStack}
         options={{
-          headerShown: false, // ✅ убираем “More” сверху
+          headerShown: false, 
           title: t("tabMore"),
           tabBarLabel: t("tabMore"),
           tabBarIcon: ({ color, size }) => <Ionicons name="menu" color={color} size={size} />,

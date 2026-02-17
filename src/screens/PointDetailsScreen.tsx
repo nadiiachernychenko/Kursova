@@ -88,7 +88,6 @@ function normalizePhone(p: string) {
 export default function PointDetailsScreen({ route }: any) {
   const point: EcoPoint = route.params.point;
 
-  // ⭐ избранное
   const [fav, setFav] = useState(false);
 
   useEffect(() => {

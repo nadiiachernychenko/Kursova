@@ -12,21 +12,15 @@ function rand(n = 16) {
 }
 
 export async function ensureAuth() {
-  // уже есть сессия?
   const s = await supabase.auth.getSession();
   if (s.data.session?.user) return s.data.session.user;
 
-  // 1) анонимный вход (если включен в Supabase)
   try {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     const anon = await supabase.auth.signInAnonymously();
     if (anon?.data?.user) return anon.data.user;
   } catch (e) {
-    // тихо идём дальше
   }
 
-  // 2) пробуем гостевые креды из AsyncStorage
   const saved = await AsyncStorage.getItem(KEY);
   if (saved) {
     try {
@@ -38,26 +32,21 @@ export async function ensureAuth() {
         console.log("signInWithPassword(saved) error:", signIn.error.message);
       }
     } catch (e) {
-      // если JSON битый — просто пересоздадим
       await AsyncStorage.removeItem(KEY);
     }
   }
 
-  // 3) создаём гостя (email+pass)
   const email = `guest_${rand(12)}@ecolife.app`;
   const password = `P@ss_${rand(24)}`;
 
   const signUp = await supabase.auth.signUp({ email, password });
 
-  // если у тебя включено подтверждение email — логин будет "Email not confirmed"
-  // поэтому Confirm email должен быть OFF (как ты уже делала).
   if (signUp.error) {
     console.log("signUp error:", signUp.error.message);
   }
 
   await AsyncStorage.setItem(KEY, JSON.stringify({ email, password }));
 
-  // пробуем войти
   const signIn = await supabase.auth.signInWithPassword({ email, password });
 
   if (signIn.error) {
