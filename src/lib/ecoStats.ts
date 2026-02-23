@@ -1,12 +1,11 @@
 import { supabase } from "./supabase";
 import { ensureAuth } from "./auth";
 import * as FileSystem from "expo-file-system/legacy";
-import { decode } from "base64-arraybuffer";
 
 const BUCKET = "proofs";
 
 export type EcoDayUpsert = {
-  day: string; 
+  day: string;
   eco_done?: boolean;
   eco_proof_url?: string | null;
 
@@ -35,7 +34,6 @@ export type EcoDayRow = {
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-
 function formatDayInKyiv(date: Date): string | null {
   try {
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -50,13 +48,11 @@ function formatDayInKyiv(date: Date): string | null {
     const d = parts.find((p) => p.type === "day")?.value;
 
     const key = `${y}-${m}-${d}`;
-    if (DAY_RE.test(key)) return key;
-    return null;
+    return DAY_RE.test(key) ? key : null;
   } catch {
     return null;
   }
 }
-
 
 export function kyivDayKey(input: any = new Date()): string {
   const base = input instanceof Date ? input : new Date(input);
@@ -111,52 +107,38 @@ function guessContentType(uri: string) {
   return "image/jpeg";
 }
 
+export async function uploadProof(kind: "eco" | "challenge", uri: string, day: string) {
+  const { data: u } = await supabase.auth.getUser();
+  const userId = u.user?.id;
+  if (!userId) throw new Error("No user");
 
-async function getPublicOrSignedUrl(path: string): Promise<string> {
-  const signed = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 24 * 7);
-  if (signed.error) throw signed.error;
-  if (!signed.data?.signedUrl) throw new Error("No signed URL");
-  return signed.data.signedUrl;
-}
-
-export async function uploadProof(
-  kind: "eco" | "challenge",
-  localUri: string,
-  day: string
-): Promise<string> {
   assertDay(day);
-  const userId = await requireUserId();
 
-const b64 = await FileSystem.readAsStringAsync(localUri, {
-  encoding: "base64" as any,
-});
-
-const bytes = decode(b64);
-
-  const ext = guessExt(localUri);
-  const contentType = guessContentType(localUri);
-
+  const ext = guessExt(uri);
   const fileName = `${day}_${Date.now()}.${ext}`;
   const path = `${kind}/${userId}/${fileName}`;
-console.log("ENV supabaseUrl:", process.env.EXPO_PUBLIC_SUPABASE_URL);
-console.log("ENV bucket:", BUCKET);
-console.log("UPLOAD path:", path);
 
-const upload = await supabase.storage.from(BUCKET).upload(path, bytes, {
-  contentType,
-  upsert: true,
-});
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
 
-if (upload.error) {
-  console.log("❌ uploadProof error:", upload.error);
-  console.log("debug:", { BUCKET, path, contentType, len: (bytes as any)?.byteLength });
-  throw upload.error;
+  // В RN/Expo обычно есть atob. Если вдруг нет — скажи, дам безопасный polyfill.
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, {
+    contentType: guessContentType(uri),
+    upsert: false,
+  });
+
+  if (error) throw error;
+
+  return path;
 }
 
-
-  const url = await getPublicOrSignedUrl(path);
-  console.log("✅ uploaded:", { bucket: BUCKET, path, url });
-  return url;
+export async function getProofSignedUrl(path: string, expiresInSec = 60 * 60 * 24 * 7) {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresInSec);
+  if (error) throw error;
+  return data.signedUrl;
 }
 
 export async function getEcoDay(day: string): Promise<EcoDayRow | null> {
@@ -210,6 +192,58 @@ export async function upsertEcoDay(payload: EcoDayUpsert): Promise<EcoDayRow> {
 
   if (error) throw error;
   return data as EcoDayRow;
+}
+
+export async function getEcoHistory(limit = 200): Promise<EcoDayRow[]> {
+  const userId = await requireUserId();
+
+  const { data, error } = await supabase
+    .from("eco_days")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("challenge_done", true)
+    .not("challenge_text", "is", null)
+    .order("day", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+
+  const rows = (data as EcoDayRow[]) ?? [];
+  return rows.filter((r: any) => typeof r?.day === "string" && DAY_RE.test(r.day));
+}
+
+export async function deleteEcoDay(day: string) {
+  assertDay(day);
+  const userId = await requireUserId();
+
+  // 1) прочитать пути (если есть)
+  const { data: row, error: readErr } = await supabase
+    .from("eco_days")
+    .select("challenge_proof_url, eco_proof_url")
+    .eq("user_id", userId)
+    .eq("day", day)
+    .maybeSingle();
+
+  if (readErr) throw readErr;
+
+  // 2) удалить строку из БД
+  const { error: delErr } = await supabase
+    .from("eco_days")
+    .delete()
+    .eq("user_id", userId)
+    .eq("day", day);
+
+  if (delErr) throw delErr;
+
+  // 3) опционально удалить файлы в storage
+  const paths = [row?.challenge_proof_url, row?.eco_proof_url].filter(Boolean) as string[];
+  if (paths.length) {
+    try {
+      await supabase.storage.from(BUCKET).remove(paths);
+    } catch {
+      // если нет прав на remove — игнор, запись уже удалена
+    }
+  }
 }
 
 export async function getEcoDaysRange(fromDay: string, toDay: string): Promise<EcoDayRow[]> {

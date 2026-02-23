@@ -10,6 +10,9 @@ import BottomTabs from "./src/navigation/BottomTabs";
 import AuthScreen from "./src/screens/AuthScreen";
 import { SettingsProvider, useSettings } from "./src/context/SettingsContext";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useFonts } from "expo-font";
+import { Nunito_800ExtraBold, Nunito_700Bold } from "@expo-google-fonts/nunito";
+import { Manrope_600SemiBold, Manrope_700Bold } from "@expo-google-fonts/manrope";
 
 function getParam(url: string, key: string) {
   const re = new RegExp(`[?#&]${key}=([^&]+)`);
@@ -18,6 +21,15 @@ function getParam(url: string, key: string) {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+  Nunito_800ExtraBold,
+  Nunito_700Bold,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+});
+
+if (!fontsLoaded) return null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SettingsProvider>
@@ -30,6 +42,7 @@ export default function App() {
 
 
 function AppRoot() {
+  
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);

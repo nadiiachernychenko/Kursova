@@ -1,24 +1,66 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAppTheme } from "../../lib/theme";
 import { useT } from "../../lib/i18n";
 import { supabase } from "../../lib/supabase";
-
+import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
 type MyEcoLevelRow = {
   user_id: string;
   days_in_app: number;
   total_points: number;
   eco_level: number;
 };
+
+const FONTS = {
+  title: "Nunito_800ExtraBold",
+  title2: "Nunito_700Bold",
+  body: "Manrope_600SemiBold",
+  strong: "Manrope_700Bold",
+} as const;
+
+const LEAVES = require("../../../assets/leaves-texture.png");
+
+type Pal = {
+  bg: string;
+  card: string;
+  text: string;
+  sub: string;
+  line: string;
+  accent: string;
+  accentSoft: string;
+  placeholder: string;
+};
+
+function makePal(colors: any, isDark: boolean): Pal {
+  const accent = "#2F6F4E";
+  const bg = colors?.background ?? (isDark ? "#0E0F11" : "#F6F7F4");
+  const card = colors?.card ?? (isDark ? "#15171A" : "#FFFFFF");
+  const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
+  const border = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(17,18,20,0.08)");
+
+  return {
+    bg,
+    card,
+    text,
+    sub: isDark ? "rgba(242,243,244,0.72)" : "rgba(17,18,20,0.68)",
+    line: border,
+    accent,
+    accentSoft: isDark ? "rgba(47,111,78,0.22)" : "#E7F2EC",
+    placeholder: isDark ? "rgba(242,243,244,0.40)" : "rgba(17,18,20,0.38)",
+  };
+}
+
+const shadow = Platform.select({
+  ios: {
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  android: { elevation: 5 },
+  default: {},
+});
 
 function levelTitleKey(level: number) {
   if (level <= 1) return "ecoLevelTitleStarter";
@@ -28,245 +70,281 @@ function levelTitleKey(level: number) {
   return "ecoLevelTitleHero";
 }
 
+function createStyles(C: Pal, isDark: boolean) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: "transparent" },
+    root: { flex: 1, backgroundColor: "transparent" },
+content: { flex: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 },
+    h1: { fontSize: 22, color: C.text, fontFamily: FONTS.title },
+
+    hero: {
+      marginTop: 12,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: C.line,
+      backgroundColor: C.card,
+      overflow: "hidden",
+      ...shadow,
+    },
+    heroInner: { padding: 14 },
+
+    heroTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 10,
+    },
+    badge: {
+      backgroundColor: C.accentSoft,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    badgeText: { color: C.accent, fontSize: 12, fontFamily: FONTS.strong },
+    softDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: C.accent, opacity: 0.35 },
+
+    levelRow: { flexDirection: "row", alignItems: "flex-end", gap: 12 },
+    levelBig: { fontSize: 56, lineHeight: 60, color: C.text, fontFamily: FONTS.title, letterSpacing: -0.5 },
+    levelMeta: { flex: 1, paddingBottom: 8 },
+    levelLabel: { fontSize: 12, color: C.sub, fontFamily: FONTS.strong, letterSpacing: 0.7, textTransform: "uppercase" },
+    levelTitle: { marginTop: 4, fontSize: 16, color: C.text, fontFamily: FONTS.title2 },
+
+    divider: { marginTop: 14, height: StyleSheet.hairlineWidth, backgroundColor: C.line, opacity: 0.9 },
+
+    scaleHead: { marginTop: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+    scaleTitle: { fontSize: 14, color: C.text, fontFamily: FONTS.title2 },
+    scaleNumbers: { fontSize: 13, color: C.sub, fontFamily: FONTS.strong },
+
+    track: { marginTop: 12, height: 10, borderRadius: 999, overflow: "hidden", backgroundColor: isDark ? "rgba(242,243,244,0.12)" : "rgba(17,18,20,0.08)" },
+    fill: { height: "100%", borderRadius: 999, backgroundColor: C.accent },
+
+    scaleFoot: { marginTop: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    footText: { fontSize: 11, color: C.sub, fontFamily: FONTS.strong },
+
+    list: { marginTop: 14 },
+    row: { paddingVertical: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    rowLabel: { fontSize: 13, color: C.sub, fontFamily: FONTS.body },
+    rowValue: { fontSize: 13, color: C.text, fontFamily: FONTS.strong },
+    rowDivider: { height: StyleSheet.hairlineWidth, backgroundColor: C.line, opacity: 0.9 },
+
+    center: { marginTop: 18, alignItems: "center", gap: 10 },
+    errorTitle: { fontSize: 16, color: C.text, fontFamily: FONTS.title2 },
+    errorText: { fontSize: 13, color: C.sub, fontFamily: FONTS.body, lineHeight: 18, textAlign: "center" },
+
+    retryBtn: {
+      marginTop: 10,
+      alignSelf: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+      backgroundColor: C.accentSoft,
+    },
+    retryText: { fontSize: 12, color: C.accent, fontFamily: FONTS.strong },
+  });
+}
+
 export function EcoLevelStubScreen() {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme() as any;
   const t = useT();
+
+  const PAL = useMemo(() => makePal(colors, !!isDark), [colors, isDark]);
+  const styles = useMemo(() => createStyles(PAL, !!isDark), [PAL, isDark]);
 
   const [loading, setLoading] = useState(true);
   const [row, setRow] = useState<MyEcoLevelRow | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [helpOpen, setHelpOpen] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
+  const aliveRef = useRef(true);
 
-    (async () => {
-      setLoading(true);
-      setError(null);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      const { data: authData, error: authErr } = await supabase.auth.getUser();
-      const user = authData?.user;
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    const user = authData?.user;
 
-      if (!alive) return;
+    if (!aliveRef.current) return;
 
-      if (authErr) {
-        setError(authErr.message);
-        setLoading(false);
-        return;
-      }
-      if (!user) {
-        setError("No user");
-        setLoading(false);
-        return;
-      }
-
-      const { data, error: qErr } = await supabase
-        .from("my_eco_level")
-        .select("user_id, days_in_app, total_points, eco_level")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!alive) return;
-
-      if (qErr) {
-        setError(qErr.message);
-        setRow(null);
-        setLoading(false);
-        return;
-      }
-
-      setRow((data as MyEcoLevelRow) ?? null);
+    if (authErr) {
+      setError("Не вдалося отримати користувача.");
+      setRow(null);
       setLoading(false);
-    })();
+      return;
+    }
 
-    return () => {
-      alive = false;
-    };
+    if (!user) {
+      setError("Потрібна авторизація, щоб показати еко-рівень.");
+      setRow(null);
+      setLoading(false);
+      return;
+    }
+
+    const { data, error: qErr } = await supabase
+      .from("my_eco_level")
+      .select("user_id, days_in_app, total_points, eco_level")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!aliveRef.current) return;
+
+    if (qErr) {
+      setError("Не вдалося завантажити дані. Перевір інтернет і спробуй ще раз.");
+      setRow(null);
+      setLoading(false);
+      return;
+    }
+
+    setRow((data as MyEcoLevelRow) ?? null);
+    setLoading(false);
   }, []);
 
-  const level = row?.eco_level ?? 1;
+  useEffect(() => {
+    aliveRef.current = true;
+    load();
+    return () => {
+      aliveRef.current = false;
+    };
+  }, [load]);
+
   const points = row?.total_points ?? 0;
   const days = row?.days_in_app ?? 0;
 
-  const title = useMemo(() => t(levelTitleKey(level)), [level, t]);
+  const STEP = 100;
 
-  const ecoSubtitle = useMemo(() => {
-    if (loading) return t("ecoLevelLoadingLine");
-    if (error) return t("ecoLevelErrorLine");
-    if (points === 0) return t("ecoLevelZeroLine");
-    if (points < 100) return t("ecoLevelUnder100Line");
-    return t("ecoLevelNiceLine");
-  }, [loading, error, points, t]);
+  const computedLevel = Math.max(1, Math.floor(points / STEP) + 1);
+  const shownLevel = row?.eco_level ?? computedLevel;
 
-  return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <View style={styles.container}>
-        <Text style={[styles.h1, { color: colors.textOnDark }]}>{t("ecoLevel")}</Text>
+  const nextTarget = Math.max(STEP, Math.ceil((points + 1) / STEP) * STEP);
+  const prevTarget = nextTarget - STEP;
 
-        <View style={[styles.hero, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {loading ? (
-            <ActivityIndicator />
-          ) : error ? (
-            <>
-              <Text style={[styles.errorTitle, { color: colors.textOnDark }]}>{t("ecoLevelErrorTitle")}</Text>
-              <Text style={[styles.errorText, { color: colors.muted }]}>{error}</Text>
-            </>
-          ) : (
-            <>
-              <Text style={[styles.levelLabel, { color: colors.muted }]}>{t("ecoLevelLevelLabel")}</Text>
-              <Text style={[styles.levelNumber, { color: colors.textOnDark }]}>{level}</Text>
-              <Text style={[styles.levelTitle, { color: colors.textOnDark }]}>{title}</Text>
-              <Text style={[styles.subline, { color: colors.muted }]}>{ecoSubtitle}</Text>
-            </>
-          )}
-        </View>
+  const inRange = points - prevTarget;
+  const progress = Math.max(0, Math.min(1, inRange / STEP));
+  const left = Math.max(0, nextTarget - points);
 
-        <View style={styles.grid}>
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>{t("ecoLevelTotalPoints")}</Text>
-            <Text style={[styles.statValue, { color: colors.textOnDark }]}>{loading ? "—" : points}</Text>
-          </View>
+  const title = useMemo(() => t(levelTitleKey(shownLevel)), [shownLevel, t]);
 
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>{t("ecoLevelDaysInApp")}</Text>
-            <Text style={[styles.statValue, { color: colors.textOnDark }]}>{loading ? "—" : days}</Text>
-          </View>
-        </View>
+ return (
+  <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
 
-        <Pressable
-          onPress={() => setHelpOpen(true)}
-          style={[styles.helpBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-        >
-          <Text style={[styles.helpText, { color: colors.textOnDark }]}>{t("ecoLevelHowBtn")}</Text>
-          <Text style={[styles.helpSub, { color: colors.muted }]}>{t("ecoLevelHowSub")}</Text>
-        </Pressable>
-      </View>
+      <Image
+        source={LEAVES}
+        resizeMode="cover"
+        style={[
+          StyleSheet.absoluteFillObject,
+          { opacity: isDark ? 0.06 : 0.08, transform: [{ scale: 1.15 }] },
+        ]}
+      />
 
-      <Modal visible={helpOpen} transparent animationType="fade" onRequestClose={() => setHelpOpen(false)}>
-        <View style={styles.modalWrap}>
-          <Pressable style={[styles.backdrop, { backgroundColor: "rgba(0,0,0,0.35)" }]} onPress={() => setHelpOpen(false)} />
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: isDark ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.18)" },
+        ]}
+      />
 
-          <View style={[styles.sheet, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-            <View style={styles.sheetTop}>
-              <Text style={[styles.sheetTitle, { color: colors.textOnDark }]}>{t("ecoLevelHowTitle")}</Text>
-              <Pressable onPress={() => setHelpOpen(false)} style={[styles.xBtn, { borderColor: colors.border }]}>
-                <Text style={[styles.xText, { color: colors.textOnDark }]}>✕</Text>
-              </Pressable>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.h1}>{t("ecoLevel")}</Text>
+
+        <View style={styles.hero}>
+          <LinearGradient
+            colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+
+          <View style={styles.heroInner}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>EcoLife</Text>
+              </View>
+              <View style={styles.softDot} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
-              <Text style={[styles.sheetLead, { color: colors.muted }]}>{t("ecoLevelHowLead")}</Text>
-
-              <View style={styles.block}>
-                <Text style={[styles.sheetH, { color: colors.textOnDark }]}>{t("ecoLevelHowPointsTitle")}</Text>
-
-                <View style={styles.row}>
-                  <Text style={[styles.emoji, { color: colors.textOnDark }]}>🌱</Text>
-                  <Text style={[styles.sheetText, { color: colors.muted }]}>{t("ecoLevelRuleEcoDay")}</Text>
-                </View>
-                <View style={styles.row}>
-                  <Text style={[styles.emoji, { color: colors.textOnDark }]}>⚡</Text>
-                  <Text style={[styles.sheetText, { color: colors.muted }]}>{t("ecoLevelRuleChallenge")}</Text>
-                </View>
-                <View style={styles.row}>
-                  <Text style={[styles.emoji, { color: colors.textOnDark }]}>📸</Text>
-                  <Text style={[styles.sheetText, { color: colors.muted }]}>{t("ecoLevelRuleEcoProof")}</Text>
-                </View>
-                <View style={styles.row}>
-                  <Text style={[styles.emoji, { color: colors.textOnDark }]}>🧾</Text>
-                  <Text style={[styles.sheetText, { color: colors.muted }]}>{t("ecoLevelRuleChallengeProof")}</Text>
-                </View>
-
-                <Text style={[styles.tip, { color: colors.muted }]}>{t("ecoLevelTipPoints")}</Text>
+            {loading ? (
+              <View style={styles.center}>
+                <ActivityIndicator />
               </View>
-
-              <View style={styles.block}>
-                <Text style={[styles.sheetH, { color: colors.textOnDark }]}>{t("ecoLevelHowLevelTitle")}</Text>
-                <Text style={[styles.sheetText, { color: colors.muted }]}>{t("ecoLevelRuleLevel100")}</Text>
-
-                <View style={styles.exampleBox}>
-                  <Text style={[styles.exampleText, { color: colors.textOnDark }]}>{t("ecoLevelExamples")}</Text>
+            ) : error ? (
+              <View style={styles.center}>
+                <Text style={styles.errorTitle}>Помилка</Text>
+                <Text style={styles.errorText}>{error}</Text>
+                <Pressable onPress={load} style={({ pressed }) => [styles.retryBtn, { opacity: pressed ? 0.8 : 1 }]}>
+                  <Text style={styles.retryText}>Спробувати ще раз</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <View style={styles.levelRow}>
+                  <Text style={styles.levelBig}>{shownLevel}</Text>
+                  <View style={styles.levelMeta}>
+                    <Text style={styles.levelLabel}>{t("ecoLevelLevelLabel")}</Text>
+                    <Text style={styles.levelTitle} numberOfLines={1}>
+                      {title}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.block}>
-                <Text style={[styles.sheetH, { color: colors.textOnDark }]}>{t("ecoLevelHowDaysTitle")}</Text>
-                <Text style={[styles.sheetText, { color: colors.muted }]}>{t("ecoLevelRuleDaysInApp")}</Text>
-              </View>
+                <View style={styles.divider} />
 
-              <Pressable
-                onPress={() => setHelpOpen(false)}
-                style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-              >
-                <Text style={[styles.closeText, { color: colors.textOnDark }]}>{t("ecoLevelGotIt")}</Text>
-              </Pressable>
-            </ScrollView>
+                <View style={styles.scaleHead}>
+                  <Text style={styles.scaleTitle}>Прогрес до наступного рівня</Text>
+                  <Text style={styles.scaleNumbers}>
+                    {points} / {nextTarget}
+                  </Text>
+                </View>
+
+                <View style={styles.track}>
+                  <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+                </View>
+
+                <View style={styles.scaleFoot}>
+                  <Text style={styles.footText}>{prevTarget}</Text>
+                  <Text style={styles.footText}>{left === 0 ? "Рівень оновлено" : `Ще ${left} балів`}</Text>
+                  <Text style={styles.footText}>{nextTarget}</Text>
+                </View>
+
+                <View style={styles.list}>
+                  <View style={styles.rowDivider} />
+
+                  <View style={styles.row}>
+                    <Text style={styles.rowLabel}>Днів разом</Text>
+                    <Text style={styles.rowValue}>{days}</Text>
+                  </View>
+
+                  <View style={styles.rowDivider} />
+
+                  <View style={styles.row}>
+                    <Text style={styles.rowLabel}>Усього балів</Text>
+                    <Text style={styles.rowValue}>{points}</Text>
+                  </View>
+
+                  <View style={styles.rowDivider} />
+                </View>
+              </>
+            )}
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
-  );
+
+        <View style={{ flex: 1 }} />
+      </ScrollView>
+    </View>
+  </SafeAreaView>
+);
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  container: { padding: 16 },
-  h1: { fontSize: 22, fontWeight: "900" },
-
-  hero: {
-    marginTop: 12,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  levelLabel: { fontSize: 12, fontWeight: "900", letterSpacing: 1 },
-  levelNumber: { fontSize: 48, fontWeight: "900", lineHeight: 52, marginTop: 4 },
-  levelTitle: { fontSize: 16, fontWeight: "900", marginTop: 4 },
-  subline: { marginTop: 6, fontSize: 13, fontWeight: "700", textAlign: "center", lineHeight: 18 },
-
-  grid: { flexDirection: "row", gap: 12, marginTop: 12 },
-  statCard: { flex: 1, borderRadius: 16, padding: 14, borderWidth: 1 },
-  statLabel: { fontSize: 12, fontWeight: "900", letterSpacing: 0.6 },
-  statValue: { marginTop: 8, fontSize: 20, fontWeight: "900" },
-
-  helpBtn: { marginTop: 12, borderRadius: 16, padding: 14, borderWidth: 1 },
-  helpText: { fontSize: 15, fontWeight: "900" },
-  helpSub: { marginTop: 6, fontSize: 12, fontWeight: "700", lineHeight: 16 },
-
-  modalWrap: { flex: 1, justifyContent: "flex-end" },
-  backdrop: { ...StyleSheet.absoluteFillObject },
-
-  sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    maxHeight: "78%",
-    overflow: "hidden",
-  },
-  sheetTop: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  sheetTitle: { fontSize: 18, fontWeight: "900" },
-  xBtn: { width: 34, height: 34, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  xText: { fontSize: 14, fontWeight: "900" },
-
-  sheetContent: { paddingHorizontal: 16, paddingBottom: 16 },
-  sheetLead: { fontSize: 13, fontWeight: "700", lineHeight: 18 },
-
-  block: { marginTop: 14 },
-  sheetH: { fontSize: 14, fontWeight: "900" },
-  sheetText: { marginTop: 8, fontSize: 13, fontWeight: "700", lineHeight: 18 },
-
-  row: { flexDirection: "row", gap: 10, marginTop: 10, alignItems: "flex-start" },
-  emoji: { fontSize: 16, fontWeight: "900", marginTop: 1 },
-
-  tip: { marginTop: 10, fontSize: 12, fontWeight: "800", lineHeight: 16 },
-
-  exampleBox: { marginTop: 10, borderRadius: 14, padding: 12, backgroundColor: "rgba(0,0,0,0.06)" },
-  exampleText: { fontSize: 13, fontWeight: "800", lineHeight: 18 },
-
-  closeBtn: { marginTop: 16, borderRadius: 14, paddingVertical: 12, alignItems: "center", borderWidth: 1 },
-  closeText: { fontSize: 14, fontWeight: "900" },
-
-  errorTitle: { fontSize: 16, fontWeight: "900" },
-  errorText: { marginTop: 6, fontSize: 13, fontWeight: "700", textAlign: "center" },
-});
+export default EcoLevelStubScreen;

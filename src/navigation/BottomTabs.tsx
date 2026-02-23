@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, View } from "react-native";
 
 import HomeStack from "./HomeStack";
 import SortStack from "./SortStack";
@@ -22,7 +23,7 @@ export type RootTabParamList = {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function BottomTabs() {
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const t = useT();
 
   return (
@@ -36,7 +37,11 @@ export default function BottomTabs() {
         tabBarStyle: {
           backgroundColor: colors.bg,
           borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          elevation: 0,
         },
+        tabBarBackground: () => <View style={{ flex: 1, backgroundColor: colors.bg }} />,
+
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
       }}
@@ -78,7 +83,7 @@ export default function BottomTabs() {
         name="More"
         component={MoreStack}
         options={{
-          headerShown: false, 
+          headerShown: false,
           title: t("tabMore"),
           tabBarLabel: t("tabMore"),
           tabBarIcon: ({ color, size }) => <Ionicons name="menu" color={color} size={size} />,

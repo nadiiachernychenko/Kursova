@@ -26,7 +26,8 @@ export default function MoreScreen() {
   const { theme, lang, remindersEnabled, setRemindersEnabled } = useSettings();
   const [supportOpen, setSupportOpen] = useState(false);
 
-  const [profileName, setProfileName] = useState<string>("Панда");
+const [profileName, setProfileName] = useState<string>("");
+const [profileLoading, setProfileLoading] = useState(true);
   const [ecoRow, setEcoRow] = useState<MyEcoLevelRow | null>(null);
 
   useEffect(() => {
@@ -46,8 +47,12 @@ export default function MoreScreen() {
       if (!alive) return;
 
       if (profile?.first_name?.trim()) setProfileName(profile.first_name.trim());
+          else if (user.user_metadata?.full_name?.trim()) setProfileName(user.user_metadata.full_name.trim());
+
       else if (user.email) setProfileName(user.email.split("@")[0]);
-      else setProfileName("Панда");
+    else setProfileName("");
+        setProfileLoading(false);
+
     })();
 
     return () => {
@@ -133,7 +138,7 @@ export default function MoreScreen() {
           >
             <Text style={[styles.topTitle, { color: colors.textOnDark }]}>{t("profile")}</Text>
             <Text style={[styles.topSub, { color: colors.muted }]} numberOfLines={1}>
-              🐼 {profileName}
+   {profileLoading ? "" : (profileName || "Користувач")}
             </Text>
           </Pressable>
 

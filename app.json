@@ -25,6 +25,9 @@
       "bundleIdentifier": "com.ecolife.app"
     },
     "android": {
+       "android": {
+      "permissions": ["CAMERA"]
+    },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -35,7 +38,10 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font",
+      "expo-camera",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

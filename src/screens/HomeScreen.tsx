@@ -12,16 +12,26 @@ import {
   TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { BlurView } from "expo-blur";
+
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { useAppTheme } from "../lib/theme";
+import { LinearGradient } from "expo-linear-gradient";
 import { ensureAuth } from "../lib/auth";
+import { supabase } from "../lib/supabase";
 import { kyivDayKey, uploadProof, upsertEcoDay } from "../lib/ecoStats";
 import type { HomeStackParamList } from "../navigation/HomeStack";
 
 type Tip = { title: string; text: string; emoji: string };
 type PandaLine = { title: string; sub: string };
+const FONTS = {
+  title: "Nunito_800ExtraBold",
+  title2: "Nunito_700Bold",
+  body: "Manrope_600SemiBold",
+  strong: "Manrope_700Bold",
+} as const;
 
 const TIPS: Tip[] = [
   { emoji: "♻️", title: "Сортуй по-розумному", text: "Спочатку промий упаковку — так вона точно піде в переробку." },
@@ -31,7 +41,7 @@ const TIPS: Tip[] = [
   { emoji: "🚰", title: "Вода теж ресурс", text: "Закривай кран під час чистки зубів — дрібниця, а економія велика." },
   { emoji: "🧠", title: "Мінімалізм = екологія", text: "Купуй менше, але якісніше — це найсильніша еко-звичка." },
 ];
-
+const LEAVES = require("../../assets/leaves-texture.png");
 const PANDA_LINES: PandaLine[] = [
   { title: "Ку-ку! Ти молодчина", sub: "Дякую, що дбаєш про довкілля" },
   { title: "Еко-герой дня", sub: "Маленькі кроки = великий вплив" },
@@ -42,8 +52,37 @@ const SMALL_STEPS = [
   { key: "plastic", title: "Зсортувати пластик", sub: "Відклади пластик окремо та промий 1 упаковку" },
   { key: "energy", title: "Зекономити електроенергію", sub: "Вимкни світло/зарядки, коли не потрібно" },
   { key: "bag", title: "Взяти багаторазову торбу", sub: "Поклади шопер біля виходу, щоб не забути" },
+  { key: "batteries", title: "Здати батарейки", sub: "Збери старі батарейки та знайди пункт прийому" },
+  { key: "glass", title: "Здати скло", sub: "Відклади скляну тару окремо" },
+  { key: "paper", title: "Зібрати макулатуру", sub: "Збери непотрібний папір для переробки" },
+  { key: "metal", title: "Відсортувати метал", sub: "Бляшанки теж можна переробити" },
+  { key: "no_bag", title: "Відмовитися від пакета", sub: "Скажи «без пакета», якщо він не потрібен" },
+  { key: "own_cup", title: "Використати свою чашку", sub: "Візьми термочашку замість одноразової" },
+  { key: "turn_off_water", title: "Закрити кран", sub: "Не залишай воду текти даремно" },
+  { key: "eco_transport", title: "Обрати еко-транспорт", sub: "Пройдися пішки або скористайся велосипедом" },
+  { key: "second_life", title: "Дати речам друге життя", sub: "Передай непотрібні речі тим, кому вони потрібні" },
+  { key: "plant_tree", title: "Посадити рослину", sub: "Навіть маленький вазон має значення" },
+  { key: "food_waste", title: "Не викидати їжу", sub: "Спробуй використати залишки в новій страві" },
+  { key: "local_food", title: "Обрати локальні продукти", sub: "Місцеве = менше транспортування" },
+  { key: "eco_cleaning", title: "Еко-прибирання", sub: "Використай менше хімії або натуральні засоби" },
+  { key: "unplug", title: "Вимкнути зарядки", sub: "Не залишай техніку в розетці без потреби" },
+  { key: "light_off", title: "Вимкнути світло", sub: "Виходячи з кімнати, вимкни освітлення" },
+  { key: "reusable_container", title: "Використати свій контейнер", sub: "Візьми свою тару для покупки їжі" },
+  { key: "sort_home", title: "Навести порядок у сортуванні", sub: "Перевір, чи правильно розкладені відходи" },
+  { key: "eco_info", title: "Дізнатися нове про екологію", sub: "Прочитай одну статтю про довкілля" },
+  { key: "repair", title: "Полагодити замість викинути", sub: "Спробуй відремонтувати річ" },
+  { key: "cloth_bag", title: "Взяти тканинну торбу", sub: "Носи шопер із собою" },
+  { key: "minimal_packaging", title: "Обрати мінімум упаковки", sub: "Купуй продукти без зайвого пластику" },
+  { key: "separate_caps", title: "Зняти кришечки", sub: "Відокремлюй кришки від пляшок" },
+  { key: "eco_friend", title: "Поділитися еко-порадою", sub: "Розкажи другові про сортування" },
+  { key: "dry_waste", title: "Промити упаковку", sub: "Перед сортуванням очисти її від залишків" },
+  { key: "energy_save", title: "Економний режим", sub: "Увімкни енергозберігаючий режим на техніці" },
+  { key: "buy_less", title: "Купити менше", sub: "Відмовся від імпульсивної покупки" },
+  { key: "eco_market", title: "Сходити на еко-ринок", sub: "Підтримай екологічні ініціативи" },
+  { key: "collect_plastic", title: "Зібрати пластик на прогулянці", sub: "Підбери сміття в парку або дворі" },
+  { key: "water_bottle", title: "Взяти свою пляшку", sub: "Не купуй одноразову воду" },
 ] as const;
-
+type SmallStep = (typeof SMALL_STEPS)[number];
 const STORAGE_KEYS = {
   tipDay: "home_tip_day",
   tipIndex: "home_tip_index",
@@ -52,6 +91,8 @@ const STORAGE_KEYS = {
   stepTitle: "home_step_title",
   stepKey: "home_step_key",
   stepNote: "home_step_note",
+  stepBag: "home_step_bag",
+  stepShown: "home_step_shown",
 };
 
 function todayKey() {
@@ -79,7 +120,16 @@ function hashToInt(s: string) {
   }
   return Math.abs(h >>> 0);
 }
-
+function shuffle<T>(arr: T[]) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+  }
+  return a;
+}
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Доброго ранку";
@@ -121,6 +171,7 @@ function PandaToast({ styles }: { styles: any }) {
   const line = useMemo(() => {
     const seed = hashToInt(todayKey());
     return PANDA_LINES[seed % PANDA_LINES.length];
+    
   }, []);
 
   useEffect(() => {
@@ -139,6 +190,7 @@ function PandaToast({ styles }: { styles: any }) {
   }, [x, opacity]);
 
   return (
+    
     <Animated.View
       pointerEvents="none"
       style={[
@@ -205,10 +257,23 @@ const shadow = Platform.select({
 
 function createStyles(COLORS: Pal, isDark: boolean) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: COLORS.bg },
-    screen: { flex: 1, backgroundColor: COLORS.bg },
-    content: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 },
+screen: { flex: 1, backgroundColor: "transparent" },
+root: { flex: 1, backgroundColor: "transparent" },
 
+    content: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 },
+heroTexture: {
+  ...StyleSheet.absoluteFillObject,
+  position: "absolute",
+  zIndex: 2,
+},
+heroGradient: {
+  ...StyleSheet.absoluteFillObject,
+  position: "absolute",
+  zIndex: 1,
+},
+heroContent: {
+  zIndex: 3,
+},
     hero: {
       borderRadius: 22,
       borderWidth: 1,
@@ -230,26 +295,26 @@ function createStyles(COLORS: Pal, isDark: boolean) {
       paddingHorizontal: 10,
       paddingVertical: 6,
     },
-    badgeText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
+badgeText: { color: COLORS.accent, fontSize: 12, fontFamily: FONTS.strong },
     softDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: COLORS.teal, opacity: 0.55 },
 
-    greeting: { fontSize: 14, fontWeight: "900", color: COLORS.text, opacity: 0.85 },
-    heroTitle: { marginTop: 6, fontSize: 20, fontWeight: "900", color: COLORS.text },
-    heroSub: { marginTop: 8, fontSize: 13, color: COLORS.sub, lineHeight: 18, fontWeight: "700" },
+greeting: { fontSize: 14, color: COLORS.text, opacity: 0.85, fontFamily: FONTS.strong },
+heroTitle: { marginTop: 6, fontSize: 20, color: COLORS.text, fontFamily: FONTS.title },
+heroSub: { marginTop: 8, fontSize: 13, color: COLORS.sub, lineHeight: 18, fontFamily: FONTS.body },
 
     heroCtaRow: { flexDirection: "row", gap: 10, marginTop: 14 },
     primaryBtn: {
       flex: 1,
       backgroundColor: COLORS.accentSoft,
       borderWidth: 1,
-      borderColor: isDark ? "rgba(47,111,78,0.28)" : "rgba(47,111,78,0.20)",
+borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
       borderRadius: 14,
       paddingVertical: 12,
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: 14,
     },
-    primaryBtnText: { color: COLORS.accent, fontWeight: "900", fontSize: 13 },
+primaryBtnText: { color: COLORS.accent, fontSize: 13, fontFamily: FONTS.strong },
 
     secondaryBtn: {
       backgroundColor: COLORS.card,
@@ -261,7 +326,7 @@ function createStyles(COLORS: Pal, isDark: boolean) {
       justifyContent: "center",
       paddingHorizontal: 14,
     },
-    secondaryBtnText: { color: COLORS.text, fontWeight: "900", fontSize: 13 },
+secondaryBtnText: { color: COLORS.text, fontSize: 13, fontFamily: "Manrope_700Bold" },
 
     sectionHeader: {
       marginTop: 16,
@@ -270,46 +335,58 @@ function createStyles(COLORS: Pal, isDark: boolean) {
       alignItems: "flex-end",
       justifyContent: "space-between",
     },
-    sectionTitle: { fontSize: 14, fontWeight: "900", color: COLORS.text },
-    sectionHint: { fontSize: 12, color: COLORS.sub, fontWeight: "800" },
+sectionTitle: { fontSize: 14, color: COLORS.text, fontFamily: "Nunito_800ExtraBold" },
+sectionHint: { fontSize: 12, color: COLORS.sub, fontFamily: FONTS.body },
 
     stepCard: {
-      borderRadius: 22,
-      borderWidth: 1,
-      borderColor: COLORS.line,
-      backgroundColor: COLORS.card,
-      padding: 14,
-      ...shadow,
-    },
-    stepTitle: { fontSize: 14, fontWeight: "900", color: COLORS.text },
-    stepSub: { marginTop: 6, fontSize: 12, fontWeight: "800", color: COLORS.sub, lineHeight: 16 },
+  borderRadius: 24,
+  backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+  padding: 16,
+  marginTop: 2,
+},
+stepTitle: { fontSize: 14, color: COLORS.text, fontFamily: "Nunito_800ExtraBold" },
+stepSub: { marginTop: 6, fontSize: 12, color: COLORS.sub, lineHeight: 16, fontFamily: "Manrope_600SemiBold" },
     stepGrid: { marginTop: 12, gap: 10 },
-    stepOption: {
-      borderWidth: 1,
-      borderColor: isDark ? "rgba(47,111,78,0.22)" : "rgba(47,111,78,0.16)",
-      backgroundColor: COLORS.accentSoft,
-      borderRadius: 18,
-      padding: 12,
-    },
-    stepOptionTitle: { fontSize: 13, fontWeight: "900", color: COLORS.accent },
-    stepOptionSub: { marginTop: 6, fontSize: 12, fontWeight: "800", color: COLORS.sub, lineHeight: 16 },
+   stepOption: {
+  backgroundColor: isDark ? "rgba(47,111,78,0.18)" : "rgba(47,111,78,0.10)",
+  borderRadius: 18,
+  padding: 14,
+},
+stepOptionTitle: { fontSize: 13, color: COLORS.accent, fontFamily: FONTS.strong },
+stepOptionSub: { marginTop: 6, fontSize: 12, color: COLORS.sub, lineHeight: 16, fontFamily: FONTS.body },
     stepToast: { marginTop: 10, fontSize: 12, fontWeight: "900", color: COLORS.accent, textAlign: "center" },
 
-    card: { borderRadius: 22, borderWidth: 1, borderColor: COLORS.line, backgroundColor: COLORS.card, ...shadow },
+card: {
+  borderRadius: 24,
+  backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+  overflow: "hidden",
+},
     cardTop: { flexDirection: "row", gap: 10, padding: 14 },
     cardEmoji: { fontSize: 20 },
-    cardTitle: { fontSize: 14, fontWeight: "900", color: COLORS.text },
-    cardText: { marginTop: 6, fontSize: 13, color: COLORS.sub, lineHeight: 18, fontWeight: "700" },
+cardTitle: { fontSize: 14, color: COLORS.text, fontFamily: "Nunito_700Bold" },
+cardText: { marginTop: 6, fontSize: 13, color: COLORS.sub, lineHeight: 18, fontFamily: "Manrope_600SemiBold" },
     cardFooter: { paddingHorizontal: 14, paddingBottom: 14 },
     pill: { alignSelf: "flex-start", backgroundColor: COLORS.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-    pillText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
+pillText: { color: COLORS.accent, fontSize: 12, fontFamily: FONTS.strong },
 
-    modalBackdrop: { flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.65)" : "rgba(0,0,0,0.25)", padding: 14, justifyContent: "center" },
-    modalCard: { backgroundColor: COLORS.card, borderRadius: 22, borderWidth: 1, borderColor: COLORS.line, padding: 14, ...shadow },
-    modalTitle: { fontSize: 16, fontWeight: "900", color: COLORS.text, marginBottom: 8 },
-    modalText: { fontSize: 13, color: COLORS.sub, lineHeight: 18, fontWeight: "700" },
+modalBackdrop: {
+  flex: 1,
+  backgroundColor: isDark ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.35)",
+  padding: 14,
+  justifyContent: "center",
+},
+modalCard: {
+  backgroundColor: isDark ? "#14171A" : "#FFFFFF", 
+  borderRadius: 22,
+  borderWidth: 1,
+  borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
+  padding: 14,
+  ...shadow,
+},
+modalTitle: { fontSize: 16, color: COLORS.text, marginBottom: 8, fontFamily: FONTS.title },
+modalText: { fontSize: 13, color: isDark ? "rgba(242,243,244,0.82)" : "rgba(17,18,20,0.72)", lineHeight: 18, fontFamily: FONTS.body },
     modalClose: { alignSelf: "flex-end", marginTop: 12, borderWidth: 1, borderColor: COLORS.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: COLORS.card },
-    modalCloseText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
+modalCloseText: { fontSize: 12, color: COLORS.text, fontFamily: FONTS.strong },
 
     stepModalRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
     stepConfirmBtn: {
@@ -320,31 +397,32 @@ function createStyles(COLORS: Pal, isDark: boolean) {
       alignItems: "center",
       justifyContent: "center",
     },
-    stepConfirmBtnText: { color: "#fff", fontWeight: "900", fontSize: 12 },
+stepConfirmBtnText: { color: "#fff", fontSize: 12, fontFamily: FONTS.strong },
     stepNoteInput: {
-      borderWidth: 1,
-      borderColor: COLORS.line,
-      backgroundColor: isDark ? "rgba(242,243,244,0.06)" : "rgba(17,18,20,0.02)",
-      borderRadius: 16,
-      padding: 10,
-      minHeight: 44,
-      fontSize: 13,
-      fontWeight: "800",
-      color: COLORS.text,
-      lineHeight: 18,
-    },
+  borderWidth: 1,
+  borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+  backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)",
+  borderRadius: 16,
+  padding: 12,
+  minHeight: 44,
+  fontSize: 13,
+  color: COLORS.text,
+  lineHeight: 18,
+  fontFamily: FONTS.body,
+},
+
 
     smallBtn: {
       paddingHorizontal: 12,
       paddingVertical: 10,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: isDark ? "rgba(47,111,78,0.28)" : "rgba(47,111,78,0.20)",
+borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
       backgroundColor: COLORS.accentSoft,
       alignItems: "center",
       justifyContent: "center",
     },
-    smallBtnText: { color: COLORS.accent, fontWeight: "900", fontSize: 12 },
+smallBtnText: { color: COLORS.accent, fontSize: 12, fontFamily: FONTS.strong },
 
     proofThumbWrap: { position: "relative" },
     proofThumb: {
@@ -364,8 +442,35 @@ function createStyles(COLORS: Pal, isDark: boolean) {
       alignItems: "center",
       justifyContent: "center",
     },
-    proofXText: { color: COLORS.card, fontWeight: "900", fontSize: 12 },
-
+proofXText: { color: COLORS.card, fontSize: 12, fontFamily: FONTS.strong },
+customStep: {
+  marginTop: 10,
+  borderWidth: 1,
+borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+backgroundColor: isDark ? "rgba(21,24,27,0.58)" : "rgba(255,255,255,0.72)",
+  borderRadius: 18,
+  padding: 12,
+},
+tipLine: {
+  height: 3,
+  backgroundColor: isDark ? "rgba(47,111,78,0.55)" : "rgba(47,111,78,0.35)",
+},
+toastPill: {
+  marginTop: 12,
+  alignSelf: "center",
+  paddingHorizontal: 14,
+  paddingVertical: 8,
+  borderRadius: 999,
+  backgroundColor: isDark ? "rgba(47,111,78,0.22)" : "rgba(47,111,78,0.14)",
+},
+toastPillText: {
+  fontSize: 12,
+  fontWeight: "900",
+  color: COLORS.accent,
+  fontFamily: FONTS.strong 
+},
+customStepTitle: { fontSize: 13, color: COLORS.text , fontFamily: FONTS.strong},
+customStepSub: { marginTop: 6, fontSize: 12, color: COLORS.sub, lineHeight: 16 , fontFamily: FONTS.body},
     pandaWrap: { position: "absolute", right: -6, top: 78, zIndex: 999, alignItems: "flex-end" },
     pandaEmoji: { fontSize: 56 },
     pandaBubble: {
@@ -380,8 +485,8 @@ function createStyles(COLORS: Pal, isDark: boolean) {
       maxWidth: 240,
       ...shadow,
     },
-    pandaText: { fontSize: 12, fontWeight: "900", color: COLORS.text },
-    pandaTextSub: { marginTop: 3, fontSize: 11, fontWeight: "800", color: COLORS.sub },
+pandaText: { fontSize: 12, color: COLORS.text, fontFamily: FONTS.strong },
+pandaTextSub: { marginTop: 3, fontSize: 11, color: COLORS.sub, fontFamily: FONTS.body },
   });
 }
 
@@ -397,18 +502,22 @@ export default function HomeScreen() {
   const cardScale = usePressScale(0.988);
 
   const [tipIndex, setTipIndex] = useState(0);
-
+const [stepMode, setStepMode] = useState<"preset" | "custom">("preset");
+const [customTitle, setCustomTitle] = useState("");
   const [stepOpen, setStepOpen] = useState(false);
 const [stepKey, setStepKey] = useState<(typeof SMALL_STEPS)[number]["key"]>(SMALL_STEPS[0].key);const [stepTitle, setStepTitle] = useState<string>(SMALL_STEPS[0].title);  const [stepNote, setStepNote] = useState("");
   const [stepDone, setStepDone] = useState(false);
   const [stepProofUri, setStepProofUri] = useState<string | null>(null);
   const stepProofUriRef = useRef<string | null>(null);
   const [stepToast, setStepToast] = useState(false);
-
+  const toastAnim = useRef(new Animated.Value(0)).current;
+const [shownSteps, setShownSteps] = useState<SmallStep[]>([]);
   useEffect(() => {
     (async () => {
       try {
         await ensureAuth();
+       const picked = await pickNextSteps(SMALL_STEPS, 3);
+setShownSteps(picked);
       } catch (e) {}
 
       const tKey = todayKey();
@@ -461,72 +570,183 @@ const [stepKey, setStepKey] = useState<(typeof SMALL_STEPS)[number]["key"]>(SMAL
     setStepProofUri(uri);
     await AsyncStorage.setItem(STORAGE_KEYS.stepProofPhoto, uri);
   }
+async function getUserId() {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? "anon";
+}
 
+async function pickNextSteps(all: readonly SmallStep[], count: number): Promise<SmallStep[]> {  
+  const uid = await getUserId();
+  const bagKey = `${STORAGE_KEYS.stepBag}:${uid}`;
+  const shownKey = `${STORAGE_KEYS.stepShown}:${uid}`;
+
+  const rawBag = await AsyncStorage.getItem(bagKey);
+  let bag: number[] = rawBag ? JSON.parse(rawBag) : [];
+
+  if (!Array.isArray(bag) || bag.length < count) {
+    bag = shuffle(all.map((_: any, i: number) => i));
+  }
+
+  const pickedIdx = bag.slice(0, count);
+  const rest = bag.slice(count);
+
+  await AsyncStorage.setItem(bagKey, JSON.stringify(rest));
+  await AsyncStorage.setItem(shownKey, JSON.stringify(pickedIdx));
+
+  return pickedIdx.map((i) => all[i]);
+}
   async function clearStepPhoto() {
     setStepProofUri(null);
     stepProofUriRef.current = null;
     await AsyncStorage.removeItem(STORAGE_KEYS.stepProofPhoto);
   }
 
-  async function openStep(s: (typeof SMALL_STEPS)[number]) {
-    setStepKey(s.key);
-    setStepTitle(s.title);
-    await AsyncStorage.setItem(STORAGE_KEYS.stepKey, s.key);
-    await AsyncStorage.setItem(STORAGE_KEYS.stepTitle, s.title);
-    setStepOpen(true);
-  }
+async function openStep(s: SmallStep) {
+  setStepMode("preset");
+  setCustomTitle("");
+  setStepNote("");
+  setStepKey(s.key);
+  setStepTitle(s.title);
 
-  async function confirmSmallStep() {
-    await ensureAuth();
+  setStepProofUri(null);
+  stepProofUriRef.current = null;
 
-    const day = kyivDayKey();
-    const tKey = todayKey();
+  await AsyncStorage.multiRemove([
+    STORAGE_KEYS.stepNote,
+    STORAGE_KEYS.stepProofPhoto,
+  ]);
 
-    let url: string | null = null;
-    const latestUri = stepProofUriRef.current || stepProofUri;
+  await AsyncStorage.setItem(STORAGE_KEYS.stepKey, s.key);
+  await AsyncStorage.setItem(STORAGE_KEYS.stepTitle, s.title);
 
-    if (latestUri) {
-      try {
-        url = await uploadProof("eco", latestUri, day);
-      } catch (e) {
-        url = null;
-      }
-    }
+  setStepOpen(true);
+}
 
+const closeStepModal = async () => {
+  setStepOpen(false);
+
+  setStepNote("");
+  setCustomTitle("");
+  setStepProofUri(null);
+  stepProofUriRef.current = null;
+
+  await AsyncStorage.multiRemove([
+    STORAGE_KEYS.stepNote,
+    STORAGE_KEYS.stepProofPhoto,
+  ]);
+};
+
+
+async function openCustomStep() {
+  setStepMode("custom");
+  setCustomTitle("");
+  setStepNote("");
+  setStepProofUri(null);
+  stepProofUriRef.current = null;
+
+  await AsyncStorage.multiRemove([
+    STORAGE_KEYS.stepNote,
+    STORAGE_KEYS.stepProofPhoto,
+  ]);
+
+  setStepKey(SMALL_STEPS[0].key);
+  setStepTitle("Свій еко-крок");
+  setStepOpen(true);
+}
+
+
+ async function confirmSmallStep() {
+  await ensureAuth();
+
+  const day = kyivDayKey();
+  const tKey = todayKey();
+const finalTitle = stepMode === "custom" ? customTitle.trim() : stepTitle;
+if (!finalTitle.length) return;
+  let path: string | null = null;
+  const latestUri = stepProofUriRef.current || stepProofUri;
+
+  if (latestUri) {
     try {
-      await upsertEcoDay({
-        day,
-        eco_done: true,
-        eco_proof_url: url,
-        challenge_done: true,
-        challenge_text: `${stepTitle}${stepNote.trim() ? ` — ${stepNote.trim()}` : ""}`,
-        challenge_proof_url: url,
-      });
-    } catch (e) {}
-
-    setStepDone(true);
-    await AsyncStorage.setItem(STORAGE_KEYS.stepDoneDay, tKey);
-    await AsyncStorage.setItem(STORAGE_KEYS.stepTitle, stepTitle);
-    await AsyncStorage.setItem(STORAGE_KEYS.stepKey, stepKey);
-    await AsyncStorage.setItem(STORAGE_KEYS.stepNote, stepNote);
-
-    setStepOpen(false);
-    setStepToast(true);
-    setTimeout(() => setStepToast(false), 1200);
+      path = await uploadProof("eco", latestUri, day);
+    } catch (e) {
+      path = null;
+    }
   }
 
-  return (
-    <View style={styles.root}>
-      <PandaToast styles={styles} />
+  try {
+    await upsertEcoDay({
+      day,
+      eco_done: true,
+      eco_proof_url: path,
+      challenge_done: true,
+challenge_text: `${finalTitle}${stepNote.trim() ? ` — ${stepNote.trim()}` : ""}`,    
+  challenge_proof_url: path,
+    });
+  } catch (e) {}
+
+  setStepDone(true);
+  await AsyncStorage.setItem(STORAGE_KEYS.stepDoneDay, tKey);
+await AsyncStorage.setItem(STORAGE_KEYS.stepTitle, finalTitle);
+  await AsyncStorage.setItem(STORAGE_KEYS.stepKey, stepKey);
+  await AsyncStorage.setItem(STORAGE_KEYS.stepNote, stepNote);
+
+await closeStepModal();
+ setStepToast(true);
+toastAnim.setValue(0);
+Animated.timing(toastAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+
+setTimeout(() => {
+  Animated.timing(toastAnim, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => {
+    setStepToast(false);
+  });
+}, 900);
+}
+
+return (
+  <View style={styles.root}>
+    <LinearGradient
+      colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={StyleSheet.absoluteFill}
+    />
+<Image
+  source={LEAVES}
+  resizeMode="cover"
+  style={[
+    StyleSheet.absoluteFillObject,
+    { opacity: isDark ? 0.06 : 0.08, transform: [{ scale: 1.15 }] },
+  ]}
+/>
+
+<View
+  pointerEvents="none"
+  style={[
+    StyleSheet.absoluteFillObject,
+    { backgroundColor: isDark ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.18)" },
+  ]}
+/>
+
+
+    <PandaToast styles={styles} />
 
       <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Animated.View style={[styles.hero, { transform: heroScale.transform }]}>
-          <Pressable
-            onPressIn={heroScale.onPressIn}
-            onPressOut={heroScale.onPressOut}
-            onPress={() => navigation.navigate("Map" as never)}
-            style={styles.heroInner}
-          >
+<Animated.View style={[styles.hero, { transform: heroScale.transform }]}>
+ <LinearGradient
+  colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+  start={{ x: 0, y: 0 }}
+  end={{ x: 1, y: 1 }}
+  style={StyleSheet.absoluteFill}
+/>
+
+
+ 
+     <Pressable
+    onPressIn={heroScale.onPressIn}
+    onPressOut={heroScale.onPressOut}
+    onPress={() => navigation.navigate("Map" as never)}
+    style={[styles.heroInner, styles.heroContent]}
+  >
             <View style={styles.heroTopRow}>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>EcoLife</Text>
@@ -555,16 +775,16 @@ const [stepKey, setStepKey] = useState<(typeof SMALL_STEPS)[number]["key"]>(SMAL
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Маленький крок сьогодні</Text>
-          <Text style={styles.sectionHint}>{stepDone ? "✅ зараховано" : ""}</Text>
-        </View>
+{stepDone ? <Text style={styles.sectionHint}>Зараховано</Text> : null}    
+   </View>
 
         <View style={styles.stepCard}>
           <Text style={styles.stepTitle}>Давай зробимо маленький крок разом</Text>
           <Text style={styles.stepSub}>Обери один варіант — і збережи в історії (можна з фото)</Text>
 
           <View style={styles.stepGrid}>
-            {SMALL_STEPS.map((s) => (
-              <Pressable
+{shownSteps.map((s) => (
+                <Pressable
                 key={s.key}
                 onPress={() => openStep(s)}
                 style={({ pressed }) => [styles.stepOption, { opacity: pressed ? 0.8 : 1 }]}
@@ -575,16 +795,38 @@ const [stepKey, setStepKey] = useState<(typeof SMALL_STEPS)[number]["key"]>(SMAL
             ))}
           </View>
 
-          {stepToast && <Text style={styles.stepToast}>Зараховано ✅</Text>}
-        </View>
+<Pressable
+  onPress={openCustomStep}
+  style={({ pressed }) => [
+    styles.customStep,
+    { opacity: pressed ? 0.85 : 1 },
+  ]}
+>
+  <Text style={styles.customStepTitle}>Або додай свій супер-еко-крок ✍️</Text>
+  <Text style={styles.customStepSub}>Опиши дію, додай фото або коментар — і збережемо в історії</Text>
+</Pressable>
+{stepToast && (
+  <Animated.View
+    style={[
+      styles.toastPill,
+      {
+        opacity: toastAnim,
+        transform: [{ scale: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }],
+      },
+    ]}
+  >
+    <Text style={styles.toastPillText}>Зараховано ✅</Text>
+  </Animated.View>
+)}     
+   </View>
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Порада дня</Text>
-          <Text style={styles.sectionHint}></Text>
         </View>
 
-        <Animated.View style={[styles.card, { transform: cardScale.transform }]}>
-          <Pressable onPressIn={cardScale.onPressIn} onPressOut={cardScale.onPressOut}>
+<Animated.View style={[styles.card, { transform: cardScale.transform }]}>
+  <Pressable onPressIn={cardScale.onPressIn} onPressOut={cardScale.onPressOut}>
+     <View style={styles.tipLine} />
             <View style={styles.cardTop}>
               <Text style={styles.cardEmoji}>{tip.emoji}</Text>
               <View style={{ flex: 1 }}>
@@ -604,12 +846,25 @@ const [stepKey, setStepKey] = useState<(typeof SMALL_STEPS)[number]["key"]>(SMAL
         <View style={{ height: 18 }} />
       </ScrollView>
 
-      <Modal visible={stepOpen} transparent animationType="fade" onRequestClose={() => setStepOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setStepOpen(false)}>
+      <Modal visible={stepOpen} transparent animationType="fade" onRequestClose={() => closeStepModal()}>
+         <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+        <Pressable style={styles.modalBackdrop} onPress={() => closeStepModal()}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>{stepTitle}</Text>
+<Text style={styles.modalTitle}>
+  {stepMode === "custom" ? (customTitle.trim() || "Свій еко-крок") : stepTitle}
+</Text>
             <Text style={styles.modalText}>Додай фото або короткий коментар — і ми збережемо це в історії.</Text>
-
+{stepMode === "custom" && (
+  <View style={{ marginTop: 12 }}>
+    <TextInput
+      value={customTitle}
+      onChangeText={setCustomTitle}
+      placeholder="Наприклад: Здав батарейки / Відмовився від стаканчика"
+      placeholderTextColor={PAL.placeholder}
+      style={styles.stepNoteInput}
+    />
+  </View>
+)}
             <View style={{ marginTop: 12 }}>
               <TextInput
                 value={stepNote}
@@ -643,11 +898,14 @@ const [stepKey, setStepKey] = useState<(typeof SMALL_STEPS)[number]["key"]>(SMAL
               </Pressable>
             </View>
 
-            <Pressable style={styles.modalClose} onPress={() => setStepOpen(false)}>
+            <Pressable style={styles.modalClose} onPress={() => closeStepModal()}>
               <Text style={styles.modalCloseText}>Закрити</Text>
             </Pressable>
+            
           </Pressable>
+          
         </Pressable>
+        
       </Modal>
     </View>
   );
