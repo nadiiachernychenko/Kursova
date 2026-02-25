@@ -1,6 +1,4 @@
-import { supabase } from "./supabase";
-
-export async function askEcoAssistant(query: string): Promise<{ answer: string }> {
+export async function askEcoAssistant(payload: { query?: string; barcode?: string; hint?: string }) {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -13,7 +11,7 @@ export async function askEcoAssistant(query: string): Promise<{ answer: string }
       apikey: anon,
       authorization: `Bearer ${anon}`,
     } as any,
-    body: JSON.stringify({ query }),
+    body: JSON.stringify(payload),
   });
 
   const text = await r.text();
@@ -26,7 +24,5 @@ export async function askEcoAssistant(query: string): Promise<{ answer: string }
 
   if (!r.ok) throw new Error(typeof body === "string" ? body : JSON.stringify(body));
 
-  if (body && typeof body.answer === "string") return { answer: body.answer };
-  if (typeof body === "string") return { answer: body };
-  return { answer: JSON.stringify(body) };
+  return body;
 }

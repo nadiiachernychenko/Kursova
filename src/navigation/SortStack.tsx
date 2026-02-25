@@ -11,7 +11,7 @@ export type SortStackParamList = {
   SortMain: undefined;
   Intro: undefined;
   Scan: undefined;
-  Assistant: { initialQuery?: string } | undefined;
+  Assistant: { initialQuery?: string; barcode?: string } | undefined;
   Category: { id: WasteCategoryId; title?: string };
 };
 
