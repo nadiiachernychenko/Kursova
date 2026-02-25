@@ -10,11 +10,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useIsFocused } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useIsFocused } from "@react-navigation/native";
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
 import { askEcoAssistant } from "../lib/ecoAssistant";
@@ -22,6 +21,43 @@ import { addToSortHistory } from "../lib/sortHistory";
 import { useAppTheme } from "../lib/theme";
 
 type Step = "scan" | "compose" | "loading" | "result";
+
+const FONTS = {
+  title: "Nunito_800ExtraBold",
+  title2: "Nunito_700Bold",
+  body: "Manrope_600SemiBold",
+  strong: "Manrope_700Bold",
+} as const;
+
+type Pal = {
+  bg: string;
+  card: string;
+  text: string;
+  sub: string;
+  line: string;
+  accent: string;
+  accentSoft: string;
+  placeholder: string;
+};
+
+function makePal(colors: any, isDark: boolean): Pal {
+  const accent = "#2F6F4E";
+  const bg = colors?.background ?? (isDark ? "#0E0F11" : "#F6F7F4");
+  const card = colors?.card ?? (isDark ? "#15171A" : "#FFFFFF");
+  const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
+  const border = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(17,18,20,0.08)");
+
+  return {
+    bg,
+    card,
+    text,
+    sub: isDark ? "rgba(242,243,244,0.72)" : "rgba(17,18,20,0.68)",
+    line: border,
+    accent,
+    accentSoft: isDark ? "rgba(47,111,78,0.22)" : "#E7F2EC",
+    placeholder: isDark ? "rgba(242,243,244,0.40)" : "rgba(17,18,20,0.38)",
+  };
+}
 
 function stripMdLike(text: string) {
   return String(text || "")
@@ -35,6 +71,9 @@ function stripMdLike(text: string) {
 
 export default function SortScanScreen() {
   const { colors, isDark } = useAppTheme() as any;
+  const PAL = useMemo(() => makePal(colors, !!isDark), [colors, isDark]);
+  const styles = useMemo(() => createStyles(PAL, !!isDark), [PAL, isDark]);
+
   const isFocused = useIsFocused();
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -53,22 +92,24 @@ export default function SortScanScreen() {
 
   const canUse = permission?.granted === true;
 
-  const bgA = colors?.bg ?? "#0B1220";
-  const bgB = (colors?.card ?? "#0F1A2E") as string;
-  const card = colors?.card ?? "#0F1A2E";
-  const border = colors?.border ?? "#1F2A44";
-  const text = colors?.textOnDark ?? "#F9FAFB";
-  const muted = colors?.muted ?? "#A7B0BE";
-  const accent = colors?.accent ?? "#1D4ED8";
-
-  const topH = 120;
-  const panelMin = 260;
-
-  const headerTitle = useMemo(() => {
-    if (step === "loading") return "Шукаю…";
+  const title = useMemo(() => {
+    if (step === "scan") return "Сканування";
+    if (step === "loading") return "Пошук…";
     if (step === "result") return "Готово";
-    return "Скануй";
+    return "Деталі";
   }, [step]);
+
+  const resetAll = () => {
+    setErr(null);
+    setAnswer(null);
+    setProductLine(null);
+    setNeedClarify(false);
+    setNote("");
+    setClarify("");
+    setBarcode(null);
+    setStep("scan");
+    setCamKey((x) => x + 1);
+  };
 
   const onBarcodeScanned = (r: BarcodeScanningResult) => {
     if (barcode) return;
@@ -82,18 +123,6 @@ export default function SortScanScreen() {
     setAnswer(null);
     setClarify("");
     setStep("compose");
-  };
-
-  const resetAll = () => {
-    setErr(null);
-    setAnswer(null);
-    setProductLine(null);
-    setNeedClarify(false);
-    setNote("");
-    setClarify("");
-    setBarcode(null);
-    setStep("scan");
-    setCamKey((x) => x + 1);
   };
 
   const submitFind = async () => {
@@ -179,10 +208,10 @@ export default function SortScanScreen() {
 
   if (!permission) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: bgA }]} edges={["top", "bottom"]}>
-        <View style={[styles.centerCard, { backgroundColor: card, borderColor: border }]}>
-          <Text style={[styles.h1, { color: text }]}>Камера</Text>
-          <Text style={[styles.sub, { color: muted }]}>Потрібен дозвіл</Text>
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <View style={styles.centerCard}>
+          <Text style={styles.h1}>Камера</Text>
+          <Text style={styles.sub}>Потрібен дозвіл</Text>
         </View>
       </SafeAreaView>
     );
@@ -190,12 +219,17 @@ export default function SortScanScreen() {
 
   if (!canUse) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: bgA }]} edges={["top", "bottom"]}>
-        <LinearGradient colors={[bgA, bgB]} style={StyleSheet.absoluteFillObject} />
-        <View style={[styles.centerCard, { backgroundColor: card, borderColor: border }]}>
-          <Text style={[styles.h1, { color: text }]}>Доступ до камери</Text>
-          <Text style={[styles.sub, { color: muted }]}>Дозволь камеру, щоб сканувати штрихкоди</Text>
-          <Pressable style={[styles.primaryBtn, { backgroundColor: accent }]} onPress={requestPermission}>
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <LinearGradient
+          colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.centerCard}>
+          <Text style={styles.h1}>Доступ до камери</Text>
+          <Text style={styles.sub}>Дозволь камеру, щоб сканувати штрихкоди</Text>
+          <Pressable style={styles.primaryBtn} onPress={requestPermission}>
             <Text style={styles.primaryTxt}>Дозволити</Text>
           </Pressable>
         </View>
@@ -203,79 +237,123 @@ export default function SortScanScreen() {
     );
   }
 
-  return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: bgA }]} edges={["top", "bottom"]}>
-      <LinearGradient colors={[bgA, bgB]} style={StyleSheet.absoluteFillObject} />
+  if (step === "loading") {
+    return (
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <LinearGradient
+          colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{title}</Text>
+        </View>
+        <View style={styles.loadingWrap}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator />
+            <Text style={styles.loadingTxt}>Шукаю інформацію у відкритих базах…</Text>
+            <Text style={styles.loadingSub}>Це може зайняти кілька секунд</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-      <View style={[styles.header, { borderBottomColor: border }]}>
-        <Text style={[styles.headerTitle, { color: text }]}>{headerTitle}</Text>
-        <Pressable style={[styles.headerPill, { backgroundColor: card, borderColor: border }]} onPress={resetAll}>
-          <Ionicons name="refresh" size={16} color={text} />
-          <Text style={[styles.headerPillTxt, { color: text }]}>Перезапустити</Text>
-        </Pressable>
-      </View>
+  if (step === "result") {
+    return (
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <LinearGradient
+          colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{title}</Text>
+        </View>
 
-      <View style={styles.body}>
-        <View style={styles.cameraWrap}>
-          <CameraView
-            key={camKey}
-            style={styles.camera}
-            facing="back"
-            active={isFocused && step !== "result"}
-            onBarcodeScanned={step === "scan" ? onBarcodeScanned : undefined}
-            barcodeScannerSettings={{ barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128", "code39", "qr"] }}
-          />
+        <ScrollView style={styles.full} contentContainerStyle={styles.fullPad} keyboardShouldPersistTaps="handled">
+          {!!barcode && <Text style={styles.meta}>Штрихкод: {barcode}</Text>}
 
-          <View style={[styles.topOverlay, { backgroundColor: isDark ? "rgba(15,26,46,0.80)" : "rgba(255,255,255,0.88)", borderColor: border }]}>
-            <View style={styles.topOverlayLeft}>
-              <Ionicons name="scan-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />
-              <Text style={[styles.topOverlayTitle, { color: isDark ? "#F9FAFB" : "#111827" }]}>
-                {barcode ? "Штрихкод знайдено" : "Наведи на штрихкод"}
-              </Text>
+          {!!productLine && (
+            <View style={styles.productCard}>
+              <Text style={styles.productTitle}>Знайдено</Text>
+              <Text style={styles.productText}>{productLine}</Text>
             </View>
+          )}
 
-            {barcode ? (
-              <View style={[styles.codePill, { backgroundColor: isDark ? "rgba(17,28,51,0.7)" : "rgba(243,244,246,0.9)", borderColor: border }]}>
-                <Text style={[styles.codeTxt, { color: isDark ? "#E5E7EB" : "#111827" }]} numberOfLines={1}>
-                  {barcode}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.dotRow}>
-                <View style={[styles.dot, { backgroundColor: isDark ? "rgba(255,255,255,0.55)" : "rgba(17,24,39,0.3)" }]} />
-                <View style={[styles.dot, { backgroundColor: isDark ? "rgba(255,255,255,0.35)" : "rgba(17,24,39,0.2)" }]} />
-                <View style={[styles.dot, { backgroundColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(17,24,39,0.12)" }]} />
-              </View>
-            )}
+          <View style={styles.answerCard}>
+            <Text style={styles.answerText}>{answer ?? ""}</Text>
           </View>
 
-          <View style={[styles.scanFrame, { borderColor: "rgba(255,255,255,0.22)" }]} />
+          {!!err && (
+            <View style={styles.errorCard}>
+              <Text style={styles.errorTitle}>Помилка</Text>
+              <Text style={styles.errorText}>{err}</Text>
+            </View>
+          )}
+
+          <Pressable style={styles.primaryBtn} onPress={resetAll}>
+            <Text style={styles.primaryTxt}>Сканувати ще раз</Text>
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (step === "compose" && barcode) {
+    return (
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <LinearGradient
+          colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{title}</Text>
         </View>
 
         <KeyboardAvoidingView
-          style={styles.panelKA}
+          style={styles.composeWrap}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? topH : 0}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
-          <View style={[styles.panel, { backgroundColor: card, borderColor: border }]}>
-            {step === "loading" ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator />
-                <Text style={[styles.loadingTxt, { color: muted }]}>Шукаю інформацію по базах…</Text>
+          <ScrollView style={styles.full} contentContainerStyle={styles.fullPad} keyboardShouldPersistTaps="handled">
+            <View style={styles.codeCard}>
+              <View style={styles.codeRow}>
+                <View style={styles.codeLeft}>
+                  <Ionicons name="barcode-outline" size={18} color={PAL.text} />
+                  <Text style={styles.codeLabel}>Штрихкод</Text>
+                </View>
+                <Text style={styles.codeValue} numberOfLines={1}>
+                  {barcode}
+                </Text>
               </View>
-            ) : step === "result" ? (
-              <ScrollView style={styles.resultScroll} contentContainerStyle={styles.resultContent} keyboardShouldPersistTaps="handled">
-                {!!barcode && <Text style={[styles.meta, { color: muted }]}>Штрихкод: {barcode}</Text>}
+              <Pressable style={styles.linkBtn} onPress={resetAll}>
+                <Ionicons name="scan-outline" size={18} color={PAL.text} />
+                <Text style={styles.linkTxt}>Сканувати інший</Text>
+              </Pressable>
+            </View>
 
-                {!!productLine && (
-                  <View style={[styles.productCard, { backgroundColor: bgA, borderColor: border }]}>
-                    <Text style={[styles.productTitle, { color: text }]}>Знайдено</Text>
-                    <Text style={[styles.productText, { color: muted }]}>{productLine}</Text>
-                  </View>
-                )}
+            {!needClarify ? (
+              <>
+                <View style={styles.block}>
+                  <Text style={styles.blockTitle}>Додай контекст (необовʼязково)</Text>
+                  <Text style={styles.blockSub}>
+                    Приклади: “Це пластикова пляшка від йогурту. Поясни як її правильно утилізувати.” або “Це тюбик крему з
+                    помпою, куди викидати помпу?”
+                  </Text>
 
-                <View style={[styles.answerCard, { backgroundColor: bgA, borderColor: border }]}>
-                  <Text style={[styles.answerText, { color: isDark ? "#D1D5DB" : "#111827" }]}>{answer ?? ""}</Text>
+                  <TextInput
+                    value={note}
+                    onChangeText={setNote}
+                    placeholder="Напиши своїми словами (можна пропустити)"
+                    placeholderTextColor={PAL.placeholder}
+                    style={styles.input}
+                    multiline
+                  />
                 </View>
 
                 {!!err && (
@@ -285,226 +363,297 @@ export default function SortScanScreen() {
                   </View>
                 )}
 
-                <Pressable style={[styles.primaryBtn, { backgroundColor: accent }]} onPress={resetAll}>
-                  <Text style={styles.primaryTxt}>Сканувати ще раз</Text>
+                <Pressable style={styles.primaryBtn} onPress={submitFind}>
+                  <Text style={styles.primaryTxt}>Знайти</Text>
                 </Pressable>
-              </ScrollView>
+              </>
             ) : (
-              <ScrollView
-                style={styles.composeScroll}
-                contentContainerStyle={[styles.composeContent, { minHeight: panelMin }]}
-                keyboardShouldPersistTaps="handled"
-              >
-                {!barcode ? (
-                  <View style={styles.emptyCompose}>
-                    <Text style={[styles.composeTitle, { color: text }]}>Готова сканувати</Text>
-                    <Text style={[styles.composeSub, { color: muted }]}>Наведи камеру на штрихкод — і я спробую знайти товар.</Text>
+              <>
+                <View style={styles.block}>
+                  <Text style={styles.blockTitle}>Не вдалося знайти товар у базах</Text>
+                  <Text style={styles.blockSub}>
+                    Напиши, що це за предмет або яка упаковка — і я поясню, як утилізувати в Україні.
+                  </Text>
+
+                  <TextInput
+                    value={clarify}
+                    onChangeText={setClarify}
+                    placeholder="Наприклад: пластикова пляшка, тюбик, банка з металу, ручка"
+                    placeholderTextColor={PAL.placeholder}
+                    style={styles.inputBig}
+                    multiline
+                  />
+                </View>
+
+                {!!err && (
+                  <View style={styles.errorCard}>
+                    <Text style={styles.errorTitle}>Помилка</Text>
+                    <Text style={styles.errorText}>{err}</Text>
                   </View>
-                ) : (
-                  <>
-                    {!needClarify ? (
-                      <>
-                        <Text style={[styles.composeTitle, { color: text }]}>Додай деталь (необовʼязково)</Text>
-                        <Text style={[styles.composeSub, { color: muted }]}>
-                          Наприклад: “крем для рук”, “пластикова упаковка”.
-                        </Text>
-
-                        <TextInput
-                          value={note}
-                          onChangeText={setNote}
-                          placeholder="Короткий коментар (необовʼязково)"
-                          placeholderTextColor={isDark ? "#9AA3AF" : "#6B7280"}
-                          style={[styles.input, { backgroundColor: bgA, borderColor: border, color: text }]}
-                          multiline
-                        />
-
-                        {!!err && (
-                          <View style={styles.errorCard}>
-                            <Text style={styles.errorTitle}>Помилка</Text>
-                            <Text style={styles.errorText}>{err}</Text>
-                          </View>
-                        )}
-
-                        <View style={styles.row}>
-                          <Pressable style={[styles.secondaryBtn, { backgroundColor: bgA, borderColor: border }]} onPress={resetAll}>
-                            <Text style={[styles.secondaryTxt, { color: text }]}>Сканувати знову</Text>
-                          </Pressable>
-                          <Pressable style={[styles.primaryBtn, { backgroundColor: accent }]} onPress={submitFind}>
-                            <Text style={styles.primaryTxt}>Знайти</Text>
-                          </Pressable>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <Text style={[styles.composeTitle, { color: text }]}>Ми не змогли знайти товар у базах</Text>
-                        <Text style={[styles.composeSub, { color: muted }]}>
-                          Напиши, що це за предмет або яка упаковка — і я поясню, як правильно утилізувати в Україні.
-                        </Text>
-
-                        <TextInput
-                          value={clarify}
-                          onChangeText={setClarify}
-                          placeholder="Наприклад: крем у тюбику з помпою"
-                          placeholderTextColor={isDark ? "#9AA3AF" : "#6B7280"}
-                          style={[styles.inputBig, { backgroundColor: bgA, borderColor: border, color: text }]}
-                          multiline
-                        />
-
-                        {!!err && (
-                          <View style={styles.errorCard}>
-                            <Text style={styles.errorTitle}>Помилка</Text>
-                            <Text style={styles.errorText}>{err}</Text>
-                          </View>
-                        )}
-
-                        <View style={styles.row}>
-                          <Pressable style={[styles.secondaryBtn, { backgroundColor: bgA, borderColor: border }]} onPress={() => setNeedClarify(false)}>
-                            <Text style={[styles.secondaryTxt, { color: text }]}>Назад</Text>
-                          </Pressable>
-                          <Pressable
-                            style={[styles.primaryBtn, { backgroundColor: accent }, !clarify.trim() && { opacity: 0.6 }]}
-                            onPress={submitExplain}
-                            disabled={!clarify.trim()}
-                          >
-                            <Text style={styles.primaryTxt}>Пояснити утилізацію</Text>
-                          </Pressable>
-                        </View>
-                      </>
-                    )}
-                  </>
                 )}
-              </ScrollView>
+
+                <View style={styles.row}>
+                  <Pressable style={styles.secondaryBtn} onPress={() => setNeedClarify(false)}>
+                    <Text style={styles.secondaryTxt}>Назад</Text>
+                  </Pressable>
+                  <Pressable style={[styles.primaryBtn, !clarify.trim() && { opacity: 0.6 }]} onPress={submitExplain} disabled={!clarify.trim()}>
+                    <Text style={styles.primaryTxt}>Пояснити утилізацію</Text>
+                  </Pressable>
+                </View>
+              </>
             )}
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <LinearGradient
+        colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>{title}</Text>
+        <Pressable style={styles.headerPill} onPress={resetAll}>
+          <Ionicons name="refresh" size={16} color={PAL.text} />
+          <Text style={styles.headerPillTxt}>Перезапустити</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.scanBody}>
+        <View style={styles.cameraPlain}>
+          <CameraView
+            key={camKey}
+            style={StyleSheet.absoluteFillObject}
+            facing="back"
+            active={isFocused}
+            onBarcodeScanned={onBarcodeScanned}
+            barcodeScannerSettings={{ barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128", "code39", "qr"] }}
+          />
+          <View style={styles.scanTop}>
+            <Ionicons name="scan-outline" size={18} color={PAL.text} />
+            <Text style={styles.scanTopTxt}>Наведи на штрихкод</Text>
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
-const W = Dimensions.get("window").width;
+function createStyles(PAL: Pal, isDark: boolean) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: "transparent" },
 
-const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  headerTitle: { fontSize: 18, fontWeight: "900" },
-  headerPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  headerPillTxt: { fontWeight: "900", fontSize: 12 },
+    header: {
+      paddingHorizontal: 16,
+      paddingTop: 6,
+      paddingBottom: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: PAL.line,
+    },
+    headerRow: {
+      paddingHorizontal: 16,
+      paddingTop: 6,
+      paddingBottom: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: PAL.line,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+    },
+    headerTitle: { fontSize: 18, color: PAL.text, fontFamily: FONTS.title },
 
-  body: { flex: 1 },
-  cameraWrap: { flex: 1, borderRadius: 22, overflow: "hidden", margin: 16, marginBottom: 10 },
-  camera: { flex: 1 },
+    headerPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      backgroundColor: isDark ? "rgba(21,24,27,0.58)" : "rgba(255,255,255,0.72)",
+    },
+    headerPillTxt: { color: PAL.text, fontSize: 12, fontFamily: FONTS.strong },
 
-  topOverlay: {
-    position: "absolute",
-    left: 12,
-    right: 12,
-    top: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  topOverlayLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  topOverlayTitle: { fontWeight: "900" },
-  dotRow: { flexDirection: "row", gap: 6 },
-  dot: { width: 8, height: 8, borderRadius: 99 },
+    scanBody: { flex: 1, padding: 16 },
+    cameraPlain: {
+      flex: 1,
+      borderRadius: 22,
+      overflow: "hidden",
+      backgroundColor: "#000",
+      borderWidth: 1,
+      borderColor: PAL.line,
+    },
 
-  codePill: { maxWidth: Math.min(W - 110, 220), borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-  codeTxt: { fontWeight: "900", letterSpacing: 0.6 },
+    scanTop: {
+      position: "absolute",
+      left: 12,
+      right: 12,
+      top: 12,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+    },
+    scanTopTxt: { color: PAL.text, fontFamily: FONTS.strong, fontSize: 13 },
 
-  scanFrame: {
-    position: "absolute",
-    left: 22,
-    right: 22,
-    top: 92,
-    bottom: 86,
-    borderRadius: 22,
-    borderWidth: 2,
-  },
+    full: { flex: 1 },
+    fullPad: { padding: 16, gap: 12 },
 
-  panelKA: { paddingHorizontal: 16, paddingBottom: 12 },
-  panel: {
-    borderRadius: 22,
-    borderWidth: 1,
-    overflow: "hidden",
-    maxHeight: 360,
-  },
+    composeWrap: { flex: 1 },
 
-  loadingRow: { padding: 18, flexDirection: "row", alignItems: "center", gap: 10 },
-  loadingTxt: { fontWeight: "800" },
+    codeCard: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      padding: 14,
+      gap: 12,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+    },
+    codeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+    codeLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+    codeLabel: { color: PAL.sub, fontFamily: FONTS.body, fontSize: 12 },
+    codeValue: { color: PAL.text, fontFamily: FONTS.strong, letterSpacing: 0.5, flex: 1, textAlign: "right" },
 
-  composeScroll: { maxHeight: 360 },
-  composeContent: { padding: 16, gap: 10 },
+    linkBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 12,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)",
+    },
+    linkTxt: { color: PAL.text, fontFamily: FONTS.strong, fontSize: 12 },
 
-  composeTitle: { fontSize: 16, fontWeight: "900" },
-  composeSub: { fontWeight: "700", lineHeight: 18 },
+    block: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      padding: 14,
+      gap: 8,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+    },
+    blockTitle: { fontSize: 15, color: PAL.text, fontFamily: FONTS.title2 },
+    blockSub: { fontSize: 12, color: PAL.sub, lineHeight: 18, fontFamily: FONTS.body },
 
-  input: {
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    minHeight: 72,
-    fontSize: 14,
-  },
-  inputBig: {
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    minHeight: 110,
-    fontSize: 14,
-  },
+    input: {
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)",
+      borderRadius: 18,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      minHeight: 72,
+      fontSize: 13,
+      color: PAL.text,
+      lineHeight: 18,
+      fontFamily: FONTS.body,
+    },
+    inputBig: {
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)",
+      borderRadius: 18,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      minHeight: 110,
+      fontSize: 13,
+      color: PAL.text,
+      lineHeight: 18,
+      fontFamily: FONTS.body,
+    },
 
-  row: { flexDirection: "row", gap: 10, marginTop: 2 },
+    primaryBtn: {
+      borderRadius: 18,
+      paddingVertical: 12,
+      alignItems: "center",
+      backgroundColor: PAL.accent,
+    },
+    primaryTxt: { color: "#fff", fontSize: 12, fontFamily: FONTS.strong },
 
-  primaryBtn: { flex: 1, borderRadius: 18, paddingVertical: 12, alignItems: "center" },
-  primaryTxt: { color: "#FFFFFF", fontWeight: "900" },
+    row: { flexDirection: "row", gap: 10 },
+    secondaryBtn: {
+      flex: 1,
+      borderRadius: 18,
+      paddingVertical: 12,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: PAL.line,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+    },
+    secondaryTxt: { color: PAL.text, fontSize: 12, fontFamily: FONTS.strong },
 
-  secondaryBtn: { flex: 1, borderRadius: 18, paddingVertical: 12, alignItems: "center", borderWidth: 1 },
-  secondaryTxt: { fontWeight: "900" },
+    meta: { color: PAL.sub, fontFamily: FONTS.body, fontSize: 12 },
 
-  emptyCompose: { paddingVertical: 8, gap: 6 },
+    productCard: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      padding: 14,
+      gap: 6,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+    },
+    productTitle: { color: PAL.text, fontFamily: FONTS.title2, fontSize: 14 },
+    productText: { color: PAL.sub, fontFamily: FONTS.body, fontSize: 12, lineHeight: 18 },
 
-  resultScroll: { maxHeight: 360 },
-  resultContent: { padding: 16, gap: 12 },
+    answerCard: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      padding: 14,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+    },
+    answerText: { color: PAL.text, lineHeight: 20, fontFamily: FONTS.body, fontSize: 13 },
 
-  meta: { fontWeight: "900" },
+    loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 16 },
+    loadingCard: {
+      width: "100%",
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      padding: 16,
+      gap: 10,
+      alignItems: "center",
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+    },
+    loadingTxt: { fontFamily: FONTS.strong, color: PAL.text, textAlign: "center", fontSize: 13 },
+    loadingSub: { fontFamily: FONTS.body, color: PAL.sub, textAlign: "center", fontSize: 12 },
 
-  productCard: { borderRadius: 18, borderWidth: 1, padding: 12, gap: 6 },
-  productTitle: { fontWeight: "900" },
-  productText: { fontWeight: "700" },
+    errorCard: {
+      backgroundColor: isDark ? "rgba(127,29,29,0.24)" : "rgba(127,29,29,0.10)",
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(252,165,165,0.35)" : "rgba(127,29,29,0.22)",
+      padding: 12,
+      gap: 6,
+    },
+    errorTitle: { color: isDark ? "#FEE2E2" : "#7F1D1D", fontFamily: FONTS.strong, fontSize: 12 },
+    errorText: { color: isDark ? "#FCA5A5" : "#7F1D1D", fontFamily: FONTS.body, fontSize: 12, lineHeight: 18 },
 
-  answerCard: { borderRadius: 18, borderWidth: 1, padding: 12 },
-  answerText: { lineHeight: 20, fontWeight: "700" },
-
-  errorCard: { backgroundColor: "#2A1220", borderRadius: 16, borderWidth: 1, borderColor: "#7F1D1D", padding: 12, gap: 6 },
-  errorTitle: { color: "#FEE2E2", fontWeight: "900" },
-  errorText: { color: "#FCA5A5", fontWeight: "700" },
-
-  centerCard: { margin: 16, borderRadius: 22, borderWidth: 1, padding: 16, gap: 10 },
-  h1: { fontSize: 20, fontWeight: "900" },
-  sub: { fontWeight: "700" },
-});
+    centerCard: {
+      margin: 16,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: PAL.line,
+      padding: 16,
+      gap: 10,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+    },
+    h1: { fontSize: 18, color: PAL.text, fontFamily: FONTS.title },
+    sub: { color: PAL.sub, fontFamily: FONTS.body, fontSize: 12, lineHeight: 18 },
+  });
+}

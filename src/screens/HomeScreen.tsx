@@ -164,48 +164,56 @@ async function pickImageUri(): Promise<string | null> {
   return res.assets?.[0]?.uri ?? null;
 }
 
-function PandaToast({ styles }: { styles: any }) {
+function PandaToast({ styles, isDark }: { styles: any; isDark: boolean }) {
   const x = useRef(new Animated.Value(84)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const bubbleOpacity = useRef(new Animated.Value(0)).current;
 
   const line = useMemo(() => {
     const seed = hashToInt(todayKey());
     return PANDA_LINES[seed % PANDA_LINES.length];
-    
   }, []);
 
   useEffect(() => {
-    Animated.sequence([
+    x.setValue(84);
+    bubbleOpacity.setValue(0);
+
+    const anim = Animated.sequence([
       Animated.delay(700),
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+        Animated.timing(bubbleOpacity, { toValue: 1, duration: 260, useNativeDriver: true }),
         Animated.timing(x, { toValue: 0, duration: 620, useNativeDriver: true }),
       ]),
       Animated.delay(6000),
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 0, duration: 650, useNativeDriver: true }),
+        Animated.timing(bubbleOpacity, { toValue: 0, duration: 240, useNativeDriver: true }),
         Animated.timing(x, { toValue: 84, duration: 900, useNativeDriver: true }),
       ]),
-    ]).start();
-  }, [x, opacity]);
+    ]);
+
+    anim.start();
+
+    return () => {
+      x.stopAnimation();
+      bubbleOpacity.stopAnimation();
+    };
+  }, [x, bubbleOpacity]);
 
   return (
-    
     <Animated.View
       pointerEvents="none"
       style={[
         styles.pandaWrap,
         {
-          opacity,
           transform: [{ translateX: x }],
         },
       ]}
     >
       <Text style={styles.pandaEmoji}>🐼</Text>
-      <View style={styles.pandaBubble}>
+
+      <Animated.View style={[styles.pandaBubble, { opacity: bubbleOpacity }]}>
         <Text style={styles.pandaText}>{line.title}</Text>
         <Text style={styles.pandaTextSub}>{line.sub}</Text>
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -474,17 +482,17 @@ customStepSub: { marginTop: 6, fontSize: 12, color: COLORS.sub, lineHeight: 16 ,
     pandaWrap: { position: "absolute", right: -6, top: 78, zIndex: 999, alignItems: "flex-end" },
     pandaEmoji: { fontSize: 56 },
     pandaBubble: {
-      marginTop: -6,
-      marginRight: 10,
-      borderWidth: 1,
-      borderColor: COLORS.line,
-      backgroundColor: COLORS.card,
-      borderRadius: 14,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-      maxWidth: 240,
-      ...shadow,
-    },
+  marginTop: -6,
+  marginRight: 10,
+  borderWidth: 1,
+  borderColor: isDark ? "rgba(47,111,78,0.6)" : "rgba(47,111,78,0.45)",
+  backgroundColor: isDark ? "rgba(21,24,27,0.75)" : "rgba(255,255,255,0.75)",
+  borderRadius: 14,
+  paddingHorizontal: 10,
+  paddingVertical: 8,
+  maxWidth: 240,
+  ...shadow,
+},
 pandaText: { fontSize: 12, color: COLORS.text, fontFamily: FONTS.strong },
 pandaTextSub: { marginTop: 3, fontSize: 11, color: COLORS.sub, fontFamily: FONTS.body },
   });
@@ -728,8 +736,7 @@ return (
 />
 
 
-    <PandaToast styles={styles} />
-
+<PandaToast styles={styles} isDark={!!isDark} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 <Animated.View style={[styles.hero, { transform: heroScale.transform }]}>
  <LinearGradient

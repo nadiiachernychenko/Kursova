@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,17 @@ import {
   ScrollView,
   ActivityIndicator,
   Keyboard,
+  Platform,
+  Animated,
+  Image,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { SortStackParamList } from "../navigation/SortStack";
 import { askEcoAssistant } from "../lib/ecoAssistant";
 import { addToSortHistory } from "../lib/sortHistory";
+import { LinearGradient } from "expo-linear-gradient";
+import { useAppTheme } from "../lib/theme";
 
 type R = RouteProp<SortStackParamList, "Assistant">;
 
@@ -40,8 +45,322 @@ const HINT_CHIPS = [
   "Інше",
 ];
 
+const LEAVES = require("../../assets/leaves-texture.png");
+
+const FONTS = {
+  title: "Nunito_800ExtraBold",
+  title2: "Nunito_700Bold",
+  body: "Manrope_600SemiBold",
+  strong: "Manrope_700Bold",
+} as const;
+
+type Pal = {
+  bg: string;
+  card: string;
+  text: string;
+  sub: string;
+  line: string;
+  accent: string;
+  accentSoft: string;
+  teal: string;
+  placeholder: string;
+  danger: string;
+  dangerSoft: string;
+};
+
+function makePal(colors: any, isDark: boolean): Pal {
+  const accent = "#2F6F4E";
+  const teal = "#2C7A7B";
+  const bg = colors?.background ?? (isDark ? "#0E0F11" : "#F6F7F4");
+  const card = colors?.card ?? (isDark ? "#15171A" : "#FFFFFF");
+  const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
+  const border = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(17,18,20,0.08)");
+
+  return {
+    bg,
+    card,
+    text,
+    sub: isDark ? "rgba(242,243,244,0.72)" : "rgba(17,18,20,0.68)",
+    line: border,
+    accent,
+    accentSoft: isDark ? "rgba(47,111,78,0.22)" : "#E7F2EC",
+    teal,
+    placeholder: isDark ? "rgba(242,243,244,0.40)" : "rgba(17,18,20,0.38)",
+    danger: "#B91C1C",
+    dangerSoft: isDark ? "rgba(185,28,28,0.22)" : "rgba(185,28,28,0.10)",
+  };
+}
+
+const shadow = Platform.select({
+  ios: {
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  android: { elevation: 5 },
+  default: {},
+});
+
+function usePressScale(to = 0.985) {
+  const v = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(v, { toValue: to, useNativeDriver: true, speed: 28, bounciness: 0 }).start();
+  };
+  const onPressOut = () => {
+    Animated.spring(v, { toValue: 1, useNativeDriver: true, speed: 28, bounciness: 6 }).start();
+  };
+
+  return { transform: [{ scale: v }], onPressIn, onPressOut };
+}
+
+function hashToInt(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h >>> 0);
+}
+
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function PandaToast({ styles }: { styles: any }) {
+  const x = useRef(new Animated.Value(84)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  const line = useMemo(() => {
+    const lines = [
+      { title: "Пишеш — я підкажу", sub: "Коротко і по суті" },
+      { title: "Штрихкод — теж ок", sub: "Якщо не знайду — уточнимо" },
+      { title: "Питай сміливо", sub: "Зробимо підказку точнішою" },
+    ];
+    const seed = hashToInt(todayKey());
+    return lines[seed % lines.length];
+  }, []);
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(650),
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+        Animated.timing(x, { toValue: 0, duration: 620, useNativeDriver: true }),
+      ]),
+      Animated.delay(5200),
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 0, duration: 650, useNativeDriver: true }),
+        Animated.timing(x, { toValue: 84, duration: 900, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, [x, opacity]);
+
+  return (
+    <Animated.View pointerEvents="none" style={[styles.pandaWrap, { opacity, transform: [{ translateX: x }] }]}>
+      <Text style={styles.pandaEmoji}>🐼</Text>
+      <View style={styles.pandaBubble}>
+        <Text style={styles.pandaText}>{line.title}</Text>
+        <Text style={styles.pandaTextSub}>{line.sub}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+function createStyles(COLORS: Pal, isDark: boolean) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: "transparent" },
+    bg: { ...StyleSheet.absoluteFillObject },
+    texture: { ...StyleSheet.absoluteFillObject, opacity: isDark ? 0.06 : 0.08, transform: [{ scale: 1.15 }] },
+    veil: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.18)" },
+
+    content: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 },
+
+    hero: {
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      backgroundColor: COLORS.card,
+      overflow: "hidden",
+      ...shadow,
+    },
+    heroInner: { padding: 14 },
+
+    heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+    badge: { backgroundColor: COLORS.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+    badgeText: { color: COLORS.accent, fontSize: 12, fontFamily: FONTS.strong },
+    softDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: COLORS.teal, opacity: 0.55 },
+
+    heroTitle: { marginTop: 2, fontSize: 20, color: COLORS.text, fontFamily: FONTS.title },
+    heroSub: { marginTop: 8, fontSize: 13, color: COLORS.sub, lineHeight: 18, fontFamily: FONTS.body },
+
+    badgeRow: { marginTop: 10, flexDirection: "row" },
+    barcodeBadge: {
+      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)",
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+    },
+    barcodeTxt: { color: COLORS.text, fontFamily: FONTS.strong, fontSize: 12, opacity: 0.9 },
+
+    box: {
+      marginTop: 12,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)",
+      padding: 12,
+      gap: 10,
+    },
+    input: {
+      minHeight: 88,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.72)",
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      fontSize: 13,
+      color: COLORS.text,
+      lineHeight: 18,
+      fontFamily: FONTS.body,
+    },
+
+    btn: {
+      borderRadius: 16,
+      paddingVertical: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.accent,
+    },
+    btnTxt: { color: "#fff", fontSize: 12, fontFamily: FONTS.strong },
+
+    productCard: {
+      marginTop: 12,
+      borderRadius: 22,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      overflow: "hidden",
+      ...shadow,
+    },
+    productTop: { padding: 14, flexDirection: "row", gap: 10, alignItems: "flex-start" },
+    productEmoji: { fontSize: 18, opacity: 0.9 },
+    productTitle: { color: COLORS.text, fontFamily: FONTS.title2, fontSize: 14 },
+    productText: { marginTop: 6, color: COLORS.sub, fontFamily: FONTS.body, fontSize: 13, lineHeight: 18 },
+    pill: { marginTop: 10, alignSelf: "flex-start", backgroundColor: COLORS.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+    pillText: { color: COLORS.accent, fontSize: 12, fontFamily: FONTS.strong },
+
+    card: {
+      marginTop: 12,
+      borderRadius: 22,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      overflow: "hidden",
+      ...shadow,
+    },
+    cardInner: { padding: 14, gap: 8 },
+    cardTitle: { color: COLORS.text, fontFamily: FONTS.title2, fontSize: 14 },
+    cardText: { color: COLORS.sub, fontFamily: FONTS.body, fontSize: 13, lineHeight: 18 },
+
+    dangerCard: {
+      marginTop: 12,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(185,28,28,0.35)" : "rgba(185,28,28,0.25)",
+      backgroundColor: COLORS.dangerSoft,
+      overflow: "hidden",
+      ...shadow,
+    },
+    dangerTitle: { color: isDark ? "rgba(255,255,255,0.92)" : "#7F1D1D", fontFamily: FONTS.title2, fontSize: 14 },
+    dangerText: { color: isDark ? "rgba(255,255,255,0.80)" : "rgba(127,29,29,0.82)", fontFamily: FONTS.body, fontSize: 13, lineHeight: 18 },
+
+    hintCard: {
+      marginTop: 12,
+      borderRadius: 22,
+      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
+      borderWidth: 1,
+      borderColor: COLORS.line,
+      overflow: "hidden",
+      ...shadow,
+    },
+    hintInner: { padding: 14, gap: 10 },
+    hintTitle: { color: COLORS.text, fontFamily: FONTS.title2, fontSize: 14 },
+    hintSub: { color: COLORS.sub, fontFamily: FONTS.body, fontSize: 13, lineHeight: 18 },
+
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    chip: {
+      backgroundColor: COLORS.accentSoft,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+    },
+    chipTxt: { color: COLORS.accent, fontFamily: FONTS.strong, fontSize: 12 },
+
+    hintInput: {
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.72)",
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      fontSize: 13,
+      color: COLORS.text,
+      lineHeight: 18,
+      fontFamily: FONTS.body,
+    },
+
+    btn2: {
+      borderRadius: 16,
+      paddingVertical: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.card,
+      borderWidth: 1,
+      borderColor: COLORS.line,
+    },
+    btn2Txt: { color: COLORS.text, fontSize: 12, fontFamily: FONTS.strong },
+
+    center: { marginTop: 12, gap: 8, alignItems: "center", paddingVertical: 14 },
+    muted: { color: COLORS.sub, fontFamily: FONTS.body },
+
+    pandaWrap: { position: "absolute", right: -6, top: 86, zIndex: 999, alignItems: "flex-end" },
+    pandaEmoji: { fontSize: 56 },
+    pandaBubble: {
+  marginTop: -6,
+  marginRight: 10,
+  borderWidth: 1,
+  borderColor: COLORS.teal,
+  backgroundColor: COLORS.card,
+  borderRadius: 14,
+  paddingHorizontal: 10,
+  paddingVertical: 8,
+  maxWidth: 240,
+  ...shadow,
+},
+    pandaText: { fontSize: 12, color: COLORS.text, fontFamily: FONTS.strong },
+    pandaTextSub: { marginTop: 3, fontSize: 11, color: COLORS.sub, fontFamily: FONTS.body },
+  });
+}
+
 export default function SortAssistantScreen() {
   const route = useRoute<R>();
+  const { colors, isDark } = useAppTheme() as any;
+
+  const PAL = useMemo(() => makePal(colors, !!isDark), [colors, isDark]);
+  const styles = useMemo(() => createStyles(PAL, !!isDark), [PAL, isDark]);
+
+  const heroScale = usePressScale(0.992);
 
   const [q, setQ] = useState(route.params?.initialQuery ?? "");
   const [barcode, setBarcode] = useState<string | undefined>((route.params as any)?.barcode);
@@ -127,41 +446,75 @@ export default function SortAssistantScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.top}>
-        <Text style={styles.h1}>{title}</Text>
-        <Text style={styles.sub}>Коротко і практично: куди та як викидати в Україні</Text>
+      <LinearGradient
+        colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.bg}
+      />
+      <Image source={LEAVES} resizeMode="cover" style={styles.texture} />
+      <View pointerEvents="none" style={styles.veil} />
 
-        {!!barcode && (
-          <View style={styles.badgeRow}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeTxt}>Штрихкод: {barcode}</Text>
+      <PandaToast styles={styles} />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Animated.View style={[styles.hero, { transform: heroScale.transform }]}>
+          <LinearGradient
+            colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Pressable onPressIn={heroScale.onPressIn} onPressOut={heroScale.onPressOut} onPress={() => Keyboard.dismiss()} style={styles.heroInner}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>EcoLife • Assistant</Text>
+              </View>
+              <View style={styles.softDot} />
+            </View>
+
+            <Text style={styles.heroTitle}>{title}</Text>
+            <Text style={styles.heroSub}>Коротко і практично: куди та як викидати в Україні</Text>
+
+            {!!barcode && (
+              <View style={styles.badgeRow}>
+                <View style={styles.barcodeBadge}>
+                  <Text style={styles.barcodeTxt}>Штрихкод: {barcode}</Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.box}>
+              <TextInput
+                value={q}
+                onChangeText={setQ}
+                placeholder={barcode ? "Можеш додати питання (необовʼязково)" : "Наприклад: куди викидати батарейки?"}
+                placeholderTextColor={PAL.placeholder}
+                style={styles.input}
+                multiline
+              />
+              <Pressable style={({ pressed }) => [styles.btn, { opacity: pressed ? 0.85 : 1 }]} onPress={submit} disabled={loading}>
+                <Text style={styles.btnTxt}>{loading ? "..." : "Надіслати"}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Animated.View>
+
+        {!!productLine && (
+          <View style={styles.productCard}>
+            <View style={styles.productTop}>
+              <Text style={styles.productEmoji}>🏷️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.productTitle}>По штрихкоду</Text>
+                <Text style={styles.productText}>{productLine}</Text>
+                <View style={styles.pill}>
+                  <Text style={styles.pillText}>{resolved ? "Знайдено інфо ✅" : "Потрібне уточнення"}</Text>
+                </View>
+              </View>
             </View>
           </View>
         )}
 
-        <View style={styles.box}>
-          <TextInput
-            value={q}
-            onChangeText={setQ}
-            placeholder={barcode ? "Можеш додати питання (необовʼязково)" : "Наприклад: куди викидати батарейки?"}
-            placeholderTextColor="#9AA3AF"
-            style={styles.input}
-            multiline
-          />
-          <Pressable style={styles.btn} onPress={submit} disabled={loading}>
-            <Text style={styles.btnTxt}>{loading ? "..." : "Надіслати"}</Text>
-          </Pressable>
-        </View>
-
-        {!!productLine && (
-          <View style={styles.productCard}>
-            <Text style={styles.productTitle}>По штрихкоду</Text>
-            <Text style={styles.productText}>{productLine}</Text>
-          </View>
-        )}
-      </View>
-
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         {loading && (
           <View style={styles.center}>
             <ActivityIndicator />
@@ -170,140 +523,56 @@ export default function SortAssistantScreen() {
         )}
 
         {!!err && (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorTitle}>Помилка</Text>
-            <Text style={styles.errorText}>{err}</Text>
+          <View style={styles.dangerCard}>
+            <View style={styles.cardInner}>
+              <Text style={styles.dangerTitle}>Помилка</Text>
+              <Text style={styles.dangerText}>{err}</Text>
+            </View>
           </View>
         )}
 
         {!!answer && (
-          <View style={styles.answerCard}>
-            <Text style={styles.answerTitle}>Відповідь</Text>
-            <Text style={styles.answerText}>{answer}</Text>
+          <View style={styles.card}>
+            <View style={styles.cardInner}>
+              <Text style={styles.cardTitle}>Відповідь</Text>
+              <Text style={styles.cardText}>{answer}</Text>
+            </View>
           </View>
         )}
 
         {showHintBlock && (
           <View style={styles.hintCard}>
-            <Text style={styles.hintTitle}>Не знайшла товар по коду</Text>
-            <Text style={styles.hintSub}>
-              Щоб підказка була точною, уточни: що це за предмет або яка упаковка (наприклад: “крем для рук у тюбику з
-              помпою”, “побутова хімія”, “скляна банка”).
-            </Text>
+            <View style={styles.hintInner}>
+              <Text style={styles.hintTitle}>Не знайшла товар по коду</Text>
+              <Text style={styles.hintSub}>
+                Щоб підказка була точною, уточни: що це за предмет або яка упаковка (наприклад: “крем для рук у тюбику з помпою”, “побутова хімія”, “скляна банка”).
+              </Text>
 
-            <View style={styles.chips}>
-              {HINT_CHIPS.map((c) => (
-                <Pressable key={c} onPress={() => pickChip(c)} style={styles.chip}>
-                  <Text style={styles.chipTxt}>{c}</Text>
-                </Pressable>
-              ))}
+              <View style={styles.chips}>
+                {HINT_CHIPS.map((c) => (
+                  <Pressable key={c} onPress={() => pickChip(c)} style={({ pressed }) => [styles.chip, { opacity: pressed ? 0.85 : 1 }]}>
+                    <Text style={styles.chipTxt}>{c}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <TextInput
+                value={hint}
+                onChangeText={setHint}
+                placeholder="Уточнення (можна коротко)"
+                placeholderTextColor={PAL.placeholder}
+                style={styles.hintInput}
+              />
+
+              <Pressable style={({ pressed }) => [styles.btn2, { opacity: pressed ? 0.85 : 1 }]} onPress={submitHint} disabled={loading}>
+                <Text style={styles.btn2Txt}>{loading ? "..." : "Надіслати уточнення"}</Text>
+              </Pressable>
             </View>
-
-            <TextInput
-              value={hint}
-              onChangeText={setHint}
-              placeholder="Уточнення (можна коротко)"
-              placeholderTextColor="#9AA3AF"
-              style={styles.hintInput}
-            />
-
-            <Pressable style={styles.btn2} onPress={submitHint} disabled={loading}>
-              <Text style={styles.btn2Txt}>{loading ? "..." : "Надіслати уточнення"}</Text>
-            </Pressable>
           </View>
         )}
+
+        <View style={{ height: 18 }} />
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0B1220" },
-  top: { padding: 16, gap: 6 },
-  h1: { color: "#F9FAFB", fontSize: 20, fontWeight: "800" },
-  sub: { color: "#A7B0BE" },
-
-  badgeRow: { marginTop: 8, flexDirection: "row" },
-  badge: {
-    backgroundColor: "#111C33",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#1F2A44",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  badgeTxt: { color: "#D1D5DB", fontWeight: "800" },
-
-  box: {
-    marginTop: 10,
-    backgroundColor: "#0F1A2E",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#1F2A44",
-    padding: 12,
-    gap: 10,
-  },
-  input: { minHeight: 88, color: "#F9FAFB", fontSize: 14 },
-  btn: { backgroundColor: "#1D4ED8", paddingVertical: 12, borderRadius: 12, alignItems: "center" },
-  btnTxt: { color: "#FFFFFF", fontWeight: "800" },
-
-  productCard: {
-    marginTop: 10,
-    backgroundColor: "#0F1A2E",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#1F2A44",
-    padding: 12,
-    gap: 6,
-  },
-  productTitle: { color: "#F9FAFB", fontWeight: "900" },
-  productText: { color: "#D1D5DB" },
-
-  body: { flex: 1 },
-  bodyContent: { padding: 16, gap: 12 },
-  center: { gap: 8, alignItems: "center", paddingVertical: 20 },
-  muted: { color: "#A7B0BE" },
-
-  answerCard: { backgroundColor: "#0F1A2E", borderRadius: 16, borderWidth: 1, borderColor: "#1F2A44", padding: 14, gap: 8 },
-  answerTitle: { color: "#F9FAFB", fontWeight: "900" },
-  answerText: { color: "#D1D5DB", lineHeight: 20 },
-
-  errorCard: { backgroundColor: "#2A1220", borderRadius: 16, borderWidth: 1, borderColor: "#7F1D1D", padding: 14, gap: 6 },
-  errorTitle: { color: "#FEE2E2", fontWeight: "900" },
-  errorText: { color: "#FCA5A5" },
-
-  hintCard: {
-    backgroundColor: "#0F1A2E",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#1F2A44",
-    padding: 14,
-    gap: 10,
-  },
-  hintTitle: { color: "#F9FAFB", fontWeight: "900", fontSize: 16 },
-  hintSub: { color: "#A7B0BE", lineHeight: 18 },
-
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    backgroundColor: "#111C33",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#1F2A44",
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  chipTxt: { color: "#D1D5DB", fontWeight: "700", fontSize: 12 },
-
-  hintInput: {
-    backgroundColor: "#0B1220",
-    borderWidth: 1,
-    borderColor: "#1F2A44",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    color: "#F9FAFB",
-  },
-
-  btn2: { backgroundColor: "#111C33", paddingVertical: 12, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "#1F2A44" },
-  btn2Txt: { color: "#E5E7EB", fontWeight: "900" },
-});
