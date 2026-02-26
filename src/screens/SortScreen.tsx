@@ -18,7 +18,7 @@ import { useAppTheme } from "../lib/theme";
 import type { SortStackParamList } from "../navigation/SortStack";
 import type { WasteCategoryId } from "../data/sorting";
 import { addToSortHistory, clearSortHistory, loadSortHistory, SortHistoryItem } from "../lib/sortHistory";
-
+import { resolveLocalSorting } from "../lib/sortLocalResolve";
 type Nav = NativeStackNavigationProp<SortStackParamList, "SortMain">;
 
 type QuickItem = {
@@ -33,8 +33,7 @@ const QUICK: QuickItem[] = [
   { title: "Скло", id: "glass" as WasteCategoryId, keywords: ["скло", "банка", "пляшка скло", "скляна"] },
   { title: "Метал", id: "metal" as WasteCategoryId, keywords: ["метал", "алюміній", "жерсть", "бляшанка", "консерва"] },
   { title: "Органіка", id: "organic" as WasteCategoryId, keywords: ["органіка", "харчові", "очистки", "кава", "чай", "шкірка"] },
-  { title: "Небезпечні", id: "hazardous" as WasteCategoryId, keywords: ["батарей", "лампа", "ртуть", "акумулятор", "ліки", "аерозоль", "фарба", "хімія"] },
-  { title: "Електроніка", id: "ewaste" as WasteCategoryId, keywords: ["електрон", "кабель", "зарядка", "телефон", "ноут", "плата"] },
+  { title: "Небезпечні", id: "hazard" as WasteCategoryId, keywords: ["батарей", "лампа", "ртуть", "акумулятор", "ліки", "аерозоль", "фарба", "хімія"] },
 ];
 
 const LEAVES = require("../../assets/leaves-texture.png");
@@ -256,8 +255,7 @@ function createStyles(COLORS: Pal, isDark: boolean) {
     emptyTitle: { color: COLORS.text, fontFamily: FONTS.title2, fontSize: 14 },
     emptyText: { color: COLORS.sub, fontFamily: FONTS.body, fontSize: 12, marginTop: 6, textAlign: "center", lineHeight: 16 },
 
-    pandaWrap: { position: "absolute", right: -6, top: 86, zIndex: 999, alignItems: "flex-end" },
-    pandaEmoji: { fontSize: 56 },
+pandaWrap: { position: "absolute", right: -6, top: 92, zIndex: 999, alignItems: "flex-end" },    pandaEmoji: { fontSize: 56 },
     pandaBubble: {
   marginTop: -6,
   marginRight: 10,
@@ -393,22 +391,23 @@ export default function SortScreen() {
     return list.slice(0, 12);
   }, [q, history]);
 
-  const submit = async (text?: string) => {
-    const query = (text ?? q).trim();
-    if (!query) return;
-    Keyboard.dismiss();
+ const submit = async (text?: string) => {
+  const query = (text ?? q).trim();
+  if (!query) return;
+  Keyboard.dismiss();
 
-    const cat = guessCategory(query);
-    await addToSortHistory(query);
-    setHistory(await loadSortHistory());
+  await addToSortHistory(query);
+  setHistory(await loadSortHistory());
 
-    if (cat) {
-      nav.navigate("Category", { id: cat.id, title: cat.title });
-      return;
-    }
+  const local = resolveLocalSorting(query);
 
-    nav.navigate("Assistant", { initialQuery: query });
-  };
+  if (local.kind === "hit" && local.confidence >= 0.8) {
+    nav.navigate("Category", { id: local.categoryId, title: local.title });
+    return;
+  }
+
+  nav.navigate("Assistant", { initialQuery: query });
+};
 
   const openSuggestion = (s: Suggestion) => {
     if (s.type === "cat" && s.id) {

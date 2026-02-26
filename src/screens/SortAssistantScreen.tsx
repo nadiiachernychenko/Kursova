@@ -19,9 +19,11 @@ import { askEcoAssistant } from "../lib/ecoAssistant";
 import { addToSortHistory } from "../lib/sortHistory";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAppTheme } from "../lib/theme";
-
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { WasteCategoryId } from "../data/sorting";
 type R = RouteProp<SortStackParamList, "Assistant">;
-
+type Nav = NativeStackNavigationProp<SortStackParamList, "Assistant">;
 function stripMdLike(text: string) {
   return String(text || "")
     .replace(/```[\s\S]*?```/g, "")
@@ -44,9 +46,13 @@ const HINT_CHIPS = [
   "Батарейки",
   "Інше",
 ];
+const ALLOWED_CATS: WasteCategoryId[] = ["paper", "plastic", "glass", "metal", "organic", "hazard"];
 
+function normalizeCatId(v: any): WasteCategoryId | null {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  return (ALLOWED_CATS as string[]).includes(s) ? (s as WasteCategoryId) : null;
+}
 const LEAVES = require("../../assets/leaves-texture.png");
-
 const FONTS = {
   title: "Nunito_800ExtraBold",
   title2: "Nunito_700Bold",
@@ -355,6 +361,8 @@ function createStyles(COLORS: Pal, isDark: boolean) {
 
 export default function SortAssistantScreen() {
   const route = useRoute<R>();
+  const nav = useNavigation<Nav>();
+
   const { colors, isDark } = useAppTheme() as any;
 
   const PAL = useMemo(() => makePal(colors, !!isDark), [colors, isDark]);
@@ -368,7 +376,9 @@ export default function SortAssistantScreen() {
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-
+const [catId, setCatId] = useState<WasteCategoryId | null>(null);
+const [catConf, setCatConf] = useState<number | null>(null);
+const [followUp, setFollowUp] = useState<string | null>(null);
   const [resolved, setResolved] = useState<boolean | null>(null);
   const [productLine, setProductLine] = useState<string | null>(null);
 
@@ -400,11 +410,17 @@ export default function SortAssistantScreen() {
       if (query) await addToSortHistory(query);
 
       const res = await askEcoAssistant({
-        query: query || undefined,
-        barcode: barcode || undefined,
-        hint: h || undefined,
-      });
+  query: query || undefined,
+  barcode: barcode || undefined,
+  hint: h || undefined,
+  wantStructured: true,
+});
+setCatId(normalizeCatId((res as any)?.categoryId));
+const confRaw = (res as any)?.confidence;
+const conf = typeof confRaw === "number" ? confRaw : Number(confRaw);
+setCatConf(Number.isFinite(conf) ? conf : null);
 
+setFollowUp((res as any)?.followUp ?? null);
       const prod = res?.product;
       const isResolved = !!res?.resolved;
       setResolved(isResolved);
@@ -433,10 +449,16 @@ export default function SortAssistantScreen() {
     setResolved(null);
     setProductLine(null);
     setShowHintBlock(false);
+    setCatId(null);
+    setCatConf(null);
+    setFollowUp(null);
     await call();
   };
 
   const submitHint = async () => {
+    setCatId(null);
+setCatConf(null);
+setFollowUp(null);
     await call({ hint });
   };
 
@@ -539,7 +561,22 @@ export default function SortAssistantScreen() {
             </View>
           </View>
         )}
+{!!followUp && (
+  <View style={styles.card}>
+    <View style={styles.cardInner}>
+      <Text style={styles.cardTitle}>Уточнення</Text>
+      <Text style={styles.cardText}>{followUp}</Text>
+    </View>
+  </View>
+)}
 
+{!!catId && (catConf ?? 0) >= 0.75 && (
+  <Pressable
+    style={({ pressed }) => [styles.btn2, { opacity: pressed ? 0.85 : 1 }]}
+onPress={() => nav.navigate("Category", { id: catId, title: "Деталі" })}  >
+    <Text style={styles.btn2Txt}>Відкрити категорію</Text>
+  </Pressable>
+)}
         {showHintBlock && (
           <View style={styles.hintCard}>
             <View style={styles.hintInner}>
@@ -554,6 +591,7 @@ export default function SortAssistantScreen() {
                     <Text style={styles.chipTxt}>{c}</Text>
                   </Pressable>
                 ))}
+                
               </View>
 
               <TextInput

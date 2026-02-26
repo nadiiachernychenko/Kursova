@@ -33,8 +33,8 @@ export default function FAQScreen() {
   const qKey = ("faqQ_" + x.id) as any;
   const aKey = ("faqA_" + x.id) as any;
 
-  const q = t(qKey) || x.id;        // fallback
-  const a = t(aKey) || "";          // fallback
+  const q = t(qKey) || x.id;        
+  const a = t(aKey) || "";          
   const catKey = FAQ_CATEGORY_KEYS[x.category].titleKey as any;
   const catTitle = t(catKey) || x.category;
 

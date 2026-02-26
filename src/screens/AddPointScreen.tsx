@@ -157,7 +157,7 @@ export default function AddPointScreen({ navigation }: any) {
       address: normalizeAddress(address),
       lat: region.latitude,
       lng: region.longitude,
-      categories, // массив
+      categories, 
       materials: materialsArr,
       phone: phone.trim() ? normalizePhone(phone) : null,
       website: website.trim() ? website.trim() : null,

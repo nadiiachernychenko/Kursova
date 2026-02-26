@@ -122,7 +122,6 @@ export async function uploadProof(kind: "eco" | "challenge", uri: string, day: s
     encoding: FileSystem.EncodingType.Base64,
   });
 
-  // В RN/Expo обычно есть atob. Если вдруг нет — скажи, дам безопасный polyfill.
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
   const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, {
@@ -216,7 +215,6 @@ export async function deleteEcoDay(day: string) {
   assertDay(day);
   const userId = await requireUserId();
 
-  // 1) прочитать пути (если есть)
   const { data: row, error: readErr } = await supabase
     .from("eco_days")
     .select("challenge_proof_url, eco_proof_url")
@@ -226,7 +224,6 @@ export async function deleteEcoDay(day: string) {
 
   if (readErr) throw readErr;
 
-  // 2) удалить строку из БД
   const { error: delErr } = await supabase
     .from("eco_days")
     .delete()
@@ -235,13 +232,11 @@ export async function deleteEcoDay(day: string) {
 
   if (delErr) throw delErr;
 
-  // 3) опционально удалить файлы в storage
   const paths = [row?.challenge_proof_url, row?.eco_proof_url].filter(Boolean) as string[];
   if (paths.length) {
     try {
       await supabase.storage.from(BUCKET).remove(paths);
     } catch {
-      // если нет прав на remove — игнор, запись уже удалена
     }
   }
 }

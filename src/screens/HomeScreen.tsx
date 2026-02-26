@@ -479,8 +479,7 @@ toastPillText: {
 },
 customStepTitle: { fontSize: 13, color: COLORS.text , fontFamily: FONTS.strong},
 customStepSub: { marginTop: 6, fontSize: 12, color: COLORS.sub, lineHeight: 16 , fontFamily: FONTS.body},
-    pandaWrap: { position: "absolute", right: -6, top: 78, zIndex: 999, alignItems: "flex-end" },
-    pandaEmoji: { fontSize: 56 },
+pandaWrap: { position: "absolute", right: -6, top: 92, zIndex: 999, alignItems: "flex-end" },    pandaEmoji: { fontSize: 56 },
     pandaBubble: {
   marginTop: -6,
   marginRight: 10,

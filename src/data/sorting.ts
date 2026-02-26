@@ -66,16 +66,3 @@ export const CATEGORIES: WasteCategory[] = [
     tips: ["Зберігай окремо в коробці та здавай разом, коли накопичиться."],
   },
 ];
-
-export type WasteItem = { name: string; categoryId: WasteCategoryId; note?: string };
-
-export const ITEMS: WasteItem[] = [
-  { name: "Пляшка PET", categoryId: "plastic", note: "Сполоснути, стиснути" },
-  { name: "Кришечки", categoryId: "plastic", note: "Збирати окремо" },
-  { name: "Коробка картонна", categoryId: "paper", note: "Скласти" },
-  { name: "Скляна банка", categoryId: "glass", note: "Зняти кришку" },
-  { name: "Алюмінієва банка", categoryId: "metal", note: "Сполоснути, зім’яти" },
-  { name: "Батарейки", categoryId: "hazard", note: "Лише спецпункти" },
-  { name: "Чек (термопапір)", categoryId: "hazard", note: "Зазвичай не переробляється як папір" },
-  { name: "Яблучні очистки", categoryId: "organic" },
-];

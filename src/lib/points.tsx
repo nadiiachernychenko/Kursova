@@ -8,7 +8,7 @@ type PointsCtx = {
   points: number;
   isReady: boolean;
   addPoints: (delta: number) => Promise<void>;
-  spendPoints: (cost: number) => Promise<boolean>; // false если не хватает
+  spendPoints: (cost: number) => Promise<boolean>; 
   setPoints: (value: number) => Promise<void>;
 };
 
