@@ -48,8 +48,7 @@ function makePal(colors: any, isDark: boolean): Pal {
   const bg = colors?.background ?? (isDark ? "#0E0F11" : "#F6F7F4");
   const card = colors?.card ?? (isDark ? "#15171A" : "#FFFFFF");
   const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
-  const border = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(17,18,20,0.08)");
-
+const border = isDark ? "rgba(47,111,78,0.28)" : "rgba(47,111,78,0.16)";
   return {
     bg,
     card,
@@ -104,7 +103,6 @@ function createStyles(C: Pal, isDark: boolean) {
       borderColor: C.line,
       backgroundColor: C.card,
       overflow: "hidden",
-      ...shadow,
     },
     heroInner: { padding: 14 },
 
@@ -135,11 +133,12 @@ softDot: {
     card: {
       marginTop: 12,
       borderRadius: 22,
-      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
-      borderWidth: 1,
+backgroundColor: isDark
+  ? "rgba(20,36,27,0.9)"
+  : "#FFFFFF",
+        borderWidth: 1,
       borderColor: C.line,
       overflow: "hidden",
-      ...shadow,
       padding: 14,
     },
     cardTitle: { fontSize: 14, color: C.text, fontFamily: FONTS.title2 },
@@ -169,7 +168,6 @@ softDot: {
       borderColor: isDark ? "rgba(185,28,28,0.35)" : "rgba(185,28,28,0.25)",
       backgroundColor: C.dangerSoft,
       overflow: "hidden",
-      ...shadow,
       padding: 14,
     },
     dangerTitle: { color: isDark ? "rgba(255,255,255,0.92)" : "#7F1D1D", fontFamily: FONTS.title2, fontSize: 14 },

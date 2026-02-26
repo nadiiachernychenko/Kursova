@@ -251,8 +251,10 @@ function createStyles(COLORS: Pal, isDark: boolean) {
     productCard: {
       marginTop: 12,
       borderRadius: 22,
-      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
-      borderWidth: 1,
+backgroundColor: isDark
+  ? "rgba(20,36,27,0.9)"
+  : "#FFFFFF",
+        borderWidth: 1,
       borderColor: COLORS.line,
       overflow: "hidden",
       ...shadow,
@@ -267,8 +269,10 @@ function createStyles(COLORS: Pal, isDark: boolean) {
     card: {
       marginTop: 12,
       borderRadius: 22,
-      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
-      borderWidth: 1,
+backgroundColor: isDark
+  ? "rgba(20,36,27,0.9)"
+  : "#FFFFFF",
+        borderWidth: 1,
       borderColor: COLORS.line,
       overflow: "hidden",
       ...shadow,
@@ -342,12 +346,15 @@ function createStyles(COLORS: Pal, isDark: boolean) {
 
     pandaWrap: { position: "absolute", right: -6, top: 86, zIndex: 999, alignItems: "flex-end" },
     pandaEmoji: { fontSize: 56 },
-    pandaBubble: {
+   pandaBubble: {
   marginTop: -6,
   marginRight: 10,
+
   borderWidth: 1,
-  borderColor: COLORS.teal,
-  backgroundColor: COLORS.card,
+  borderColor: isDark ? "rgba(47,111,78,0.55)" : "rgba(47,111,78,0.28)",
+
+  backgroundColor: isDark ? "rgba(20,36,27,0.88)" : "rgba(255,255,255,0.92)",
+
   borderRadius: 14,
   paddingHorizontal: 10,
   paddingVertical: 8,

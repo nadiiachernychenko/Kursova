@@ -230,8 +230,10 @@ function createStyles(COLORS: Pal, isDark: boolean) {
 
     row: {
       borderRadius: 22,
-      backgroundColor: isDark ? "rgba(21,24,27,0.72)" : "rgba(255,255,255,0.82)",
-      borderWidth: 1,
+backgroundColor: isDark
+  ? "rgba(20,36,27,0.9)"
+  : "#FFFFFF",
+        borderWidth: 1,
       borderColor: COLORS.line,
       overflow: "hidden",
       ...shadow,
