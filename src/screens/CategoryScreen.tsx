@@ -12,7 +12,7 @@ import {
 import { useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-
+import AppTopBar from "../components/AppTopBar";
 import { useAppTheme } from "../lib/theme";
 import type { SortStackParamList } from "../navigation/SortStack";
 import { CATEGORIES, type WasteCategoryId } from "../data/sorting";
@@ -95,7 +95,7 @@ function createStyles(C: Pal, isDark: boolean) {
     texture: { ...StyleSheet.absoluteFillObject, opacity: isDark ? 0.06 : 0.08, transform: [{ scale: 1.15 }] },
     veil: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.18)" },
 
-    content: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 22 },
+    content: { paddingHorizontal: 14, paddingTop: 22, paddingBottom: 22 },
 
     hero: {
       borderRadius: 22,
@@ -223,7 +223,7 @@ export default function CategoryScreen() {
         />
         <Image source={LEAVES} resizeMode="cover" style={styles.texture} />
         <View pointerEvents="none" style={styles.veil} />
-
+<AppTopBar />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.dangerCard}>
             <Text style={styles.dangerTitle}>Категорію не знайдено</Text>
@@ -246,7 +246,7 @@ export default function CategoryScreen() {
       />
       <Image source={LEAVES} resizeMode="cover" style={styles.texture} />
       <View pointerEvents="none" style={styles.veil} />
-
+<AppTopBar />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View style={[styles.hero, { transform: heroScale.transform }]}>
           <LinearGradient

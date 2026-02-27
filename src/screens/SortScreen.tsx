@@ -19,6 +19,7 @@ import type { SortStackParamList } from "../navigation/SortStack";
 import type { WasteCategoryId } from "../data/sorting";
 import { addToSortHistory, clearSortHistory, loadSortHistory, SortHistoryItem } from "../lib/sortHistory";
 import { resolveLocalSorting } from "../lib/sortLocalResolve";
+import AppTopBar from "../components/AppTopBar";
 type Nav = NativeStackNavigationProp<SortStackParamList, "SortMain">;
 
 type QuickItem = {
@@ -511,6 +512,7 @@ export default function SortScreen() {
       />
       <Image source={LEAVES} resizeMode="cover" style={styles.texture} />
       <View pointerEvents="none" style={styles.veil} />
+  <AppTopBar />
 
       <PandaToast styles={styles} />
 

@@ -19,16 +19,12 @@ const Stack = createNativeStackNavigator<SortStackParamList>();
 
 export default function SortStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="SortMain" component={SortScreen} options={{ title: "Сортування" }} />
-      <Stack.Screen name="Intro" component={SortIntroScreen} options={{ title: "Як сортувати" }} />
-      <Stack.Screen name="Scan" component={SortScanScreen} options={{ title: "Скануй" }} />
-      <Stack.Screen name="Assistant" component={SortAssistantScreen} options={{ title: "Запитай" }} />
-      <Stack.Screen
-        name="Category"
-        component={CategoryScreen}
-        options={({ route }) => ({ title: route.params?.title ?? "Деталі" })}
-      />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="SortMain" component={SortScreen} />
+      <Stack.Screen name="Intro" component={SortIntroScreen} />
+      <Stack.Screen name="Scan" component={SortScanScreen} />
+      <Stack.Screen name="Assistant" component={SortAssistantScreen} />
+      <Stack.Screen name="Category" component={CategoryScreen} />
     </Stack.Navigator>
   );
 }

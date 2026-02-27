@@ -21,13 +21,13 @@ const Stack = createNativeStackNavigator<PandaTeachStackParamList>();
 
 export default function PandaTeachStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="PandaTeachHome" component={PandaTeachHomeScreen} options={{ title: "Панда вчить" }} />
-      <Stack.Screen name="EcoFacts" component={EcoFactsScreen} options={{ title: "Еко-факти" }} />
-      <Stack.Screen name="MyTruth" component={MyTruthScreen} options={{ title: "Міф чи правда" }} />
-      <Stack.Screen name="PandaAsks" component={PandaAsksScreen} options={{ title: "Панда питає" }} />
-      <Stack.Screen name="Sorting" component={SortingScreen} options={{ title: "Сортування" }} />
-      <Stack.Screen name="PandaShop" component={PandaShopScreen} options={{ title: "Магазин панди" }} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="PandaTeachHome" component={PandaTeachHomeScreen} />
+      <Stack.Screen name="EcoFacts" component={EcoFactsScreen} />
+      <Stack.Screen name="MyTruth" component={MyTruthScreen} />
+      <Stack.Screen name="PandaAsks" component={PandaAsksScreen} />
+      <Stack.Screen name="Sorting" component={SortingScreen} />
+      <Stack.Screen name="PandaShop" component={PandaShopScreen} />
     </Stack.Navigator>
   );
 }

@@ -3,16 +3,21 @@ import React, { useEffect, useState } from "react";
 import { View, ActivityIndicator, useColorScheme } from "react-native";
 import { NavigationContainer, DefaultTheme, DarkTheme } from "@react-navigation/native";
 import * as Linking from "expo-linking";
-import OnboardingScreen from "./src/screens/OnboardingScreen";
-
-import { supabase } from "./src/lib/supabase";
-import BottomTabs from "./src/navigation/BottomTabs";
-import AuthScreen from "./src/screens/AuthScreen";
-import { SettingsProvider, useSettings } from "./src/context/SettingsContext";
+import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useFonts } from "expo-font";
 import { Nunito_800ExtraBold, Nunito_700Bold } from "@expo-google-fonts/nunito";
 import { Manrope_600SemiBold, Manrope_700Bold } from "@expo-google-fonts/manrope";
+import RootStack from "./src/navigation/RootStack";
+import OnboardingScreen from "./src/screens/OnboardingScreen";
+import BottomTabs from "./src/navigation/BottomTabs";
+import AuthScreen from "./src/screens/AuthScreen";
+import LaunchOverlay from "./src/components/LaunchOverlay";
+
+import { supabase } from "./src/lib/supabase";
+import { SettingsProvider, useSettings } from "./src/context/SettingsContext";
+
+SplashScreen.preventAutoHideAsync();
 
 function getParam(url: string, key: string) {
   const re = new RegExp(`[?#&]${key}=([^&]+)`);
@@ -22,27 +27,42 @@ function getParam(url: string, key: string) {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-  Nunito_800ExtraBold,
-  Nunito_700Bold,
-  Manrope_600SemiBold,
-  Manrope_700Bold,
-});
+    Nunito_800ExtraBold,
+    Nunito_700Bold,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+  });
 
-if (!fontsLoaded) return null;
+  const [appReady, setAppReady] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
+
+  useEffect(() => {
+    if (!fontsLoaded) return;
+
+    (async () => {
+      try {
+        await new Promise((r) => setTimeout(r, 250));
+      } finally {
+        setAppReady(true);
+        SplashScreen.hideAsync();
+        setTimeout(() => setShowOverlay(false), 1600);
+      }
+    })();
+  }, [fontsLoaded]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SettingsProvider>
-        <AppRoot />
+        <View style={{ flex: 1 }}>
+          <AppRoot />
+          <LaunchOverlay visible={showOverlay || !fontsLoaded || !appReady} />
+        </View>
       </SettingsProvider>
     </GestureHandlerRootView>
   );
 }
 
-
-
 function AppRoot() {
-  
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
@@ -92,15 +112,10 @@ function AppRoot() {
       setLoading(false);
     };
 
-   const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-  console.log("AUTH EVENT:", _event);
-
-  setHasSession(!!session);
-
-  if (!session) {
-    setNeedsOnboarding(false);
-  }
-});
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setHasSession(!!session);
+      if (!session) setNeedsOnboarding(false);
+    });
 
     const handleUrl = async (url: string) => {
       try {
@@ -147,18 +162,14 @@ function AppRoot() {
   }
 
   return (
-  <NavigationContainer
-    key={hasSession ? "app" : "auth"}
-    theme={resolvedTheme === "dark" ? DarkTheme : DefaultTheme}
-  >
-    {!hasSession ? (
-      <AuthScreen />
-    ) : needsOnboarding ? (
-      <OnboardingScreen lang={lang === "ua" ? "ua" : "en"} onDone={() => setNeedsOnboarding(false)} />
-    ) : (
-      <BottomTabs />
-    )}
-  </NavigationContainer>
-);
-
+    <NavigationContainer key={hasSession ? "app" : "auth"} theme={resolvedTheme === "dark" ? DarkTheme : DefaultTheme}>
+      {!hasSession ? (
+        <AuthScreen />
+      ) : needsOnboarding ? (
+        <OnboardingScreen lang={lang === "ua" ? "ua" : "en"} onDone={() => setNeedsOnboarding(false)} />
+      ) : (
+          <RootStack />
+      )}
+    </NavigationContainer>
+  );
 }

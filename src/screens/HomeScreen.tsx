@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
-
+import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
@@ -23,7 +23,8 @@ import { ensureAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import { kyivDayKey, uploadProof, upsertEcoDay } from "../lib/ecoStats";
 import type { HomeStackParamList } from "../navigation/HomeStack";
-
+import { SafeAreaView } from "react-native-safe-area-context";
+import AppTopBar from "../components/AppTopBar";
 type Tip = { title: string; text: string; emoji: string };
 type PandaLine = { title: string; sub: string };
 const FONTS = {
@@ -197,7 +198,7 @@ function PandaToast({ styles, isDark }: { styles: any; isDark: boolean }) {
       bubbleOpacity.stopAnimation();
     };
   }, [x, bubbleOpacity]);
-
+<AppTopBar />
   return (
     <Animated.View
       pointerEvents="none"
@@ -265,10 +266,39 @@ const shadow = Platform.select({
 
 function createStyles(COLORS: Pal, isDark: boolean) {
   return StyleSheet.create({
+    topBar: {
+  position: "absolute",
+  left: 0,
+  right: 0,
+  top: 0,
+  zIndex: 1000,
+},
+topBarInner: {
+  paddingHorizontal: 14,
+  paddingTop: 8,
+  paddingBottom: 10,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+},
+topBarTitle: {
+  fontSize: 14,
+  color: COLORS.text,
+  opacity: 0.9,
+  fontFamily: FONTS.strong,
+},
+menuBtn: {
+  width: 44,
+  height: 44,
+  borderRadius: 999,
+  alignItems: "center",
+  justifyContent: "center",
+  borderWidth: 1,
+},
 screen: { flex: 1, backgroundColor: "transparent" },
 root: { flex: 1, backgroundColor: "transparent" },
 
-    content: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 },
+content: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 },
 heroTexture: {
   ...StyleSheet.absoluteFillObject,
   position: "absolute",
@@ -710,6 +740,7 @@ setTimeout(() => {
 }
 
 return (
+  
   <View style={styles.root}>
     <LinearGradient
       colors={isDark ? ["#14241B", "#111315"] : ["#F6F9F6", "#FFFFFF"]}
@@ -736,6 +767,7 @@ return (
 
 
 <PandaToast styles={styles} isDark={!!isDark} />
+<AppTopBar />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 <Animated.View style={[styles.hero, { transform: heroScale.transform }]}>
  <LinearGradient
@@ -753,12 +785,12 @@ return (
     onPress={() => navigation.navigate("Map" as never)}
     style={[styles.heroInner, styles.heroContent]}
   >
-            <View style={styles.heroTopRow}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>EcoLife</Text>
-              </View>
-              <View style={styles.softDot} />
-            </View>
+           <View style={styles.heroTopRow}>
+  <View style={styles.badge}>
+    <Text style={styles.badgeText}>EcoLife</Text>
+  </View>
+  <View style={styles.softDot} />
+</View>
 
             <Text style={styles.greeting}>{greeting} ✨</Text>
             <Text style={styles.heroTitle}>Еко-звички без напрягу</Text>

@@ -11,7 +11,7 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
-
+import AppTopBar from "../components/AppTopBar";
 import MapView, { Marker, Region } from "react-native-maps";
 import ClusteredMapView from "react-native-map-clustering";
 import * as Location from "expo-location";

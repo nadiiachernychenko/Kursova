@@ -5,34 +5,32 @@
     "scheme": "ecolife",
     "jsEngine": "hermes",
     "version": "1.0.0",
-    "platforms": [
-      "android",
-      "ios"
-    ],
+    "platforms": ["android", "ios"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "cover",
+      "backgroundColor": "#0E1F17"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ecolife.app"
     },
     "android": {
-       "android": {
-      "permissions": ["CAMERA"]
-    },
+      "package": "com.ecolife.app",
+      "permissions": ["CAMERA"],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0E1F17"
       },
-      "package": "com.ecolife.app"
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#0E1F17"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

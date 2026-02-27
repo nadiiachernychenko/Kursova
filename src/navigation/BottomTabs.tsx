@@ -79,16 +79,7 @@ export default function BottomTabs() {
         }}
       />
 
-      <Tab.Screen
-        name="More"
-        component={MoreStack}
-        options={{
-          headerShown: false,
-          title: t("tabMore"),
-          tabBarLabel: t("tabMore"),
-          tabBarIcon: ({ color, size }) => <Ionicons name="menu" color={color} size={size} />,
-        }}
-      />
+    
 
       <Tab.Screen
         name="Map"

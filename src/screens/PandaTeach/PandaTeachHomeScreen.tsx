@@ -4,6 +4,8 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useEduProfile } from "../../lib/useEduProfile";
 import { earnEduPoints } from "../../lib/eduApi";
 import { useAppTheme } from "../../lib/theme";
+import AppTopBar from "../../components/AppTopBar";
+
 type Nav = any;
 
 export default function PandaTeachHomeScreen() {
@@ -29,7 +31,6 @@ export default function PandaTeachHomeScreen() {
     try {
       const res: any = await earnEduPoints("facts", 1);
       await refresh();
-
       if (res?.ok === false) setToast(res?.reason ?? "На сьогодні ліміт 🐼");
       else setToast(`+${res?.added ?? 1} бал ✨`);
     } catch (e: any) {
@@ -38,51 +39,80 @@ export default function PandaTeachHomeScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>🐼 Панда вчить</Text>
-        <Text style={styles.subtitle}>Грай 2 хвилини — і прокачуй еко-знання</Text>
+    <View style={{ flex: 1 }}>
+      {/* Топбар как на главной/сортуванні: только ☰, без заголовка */}
+      <AppTopBar showTitle={false} />
 
-        <View style={styles.chipsRow}>
-          {chips.map((c, idx) => (
-            <View key={idx} style={styles.chip}>
-              <Text style={styles.chipText}>{c.text}</Text>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          {/* Оставляем только один заголовок внутри экрана */}
+          <Text style={styles.title}>🐼 Панда вчить</Text>
+          <Text style={styles.subtitle}>Грай 2 хвилини — і прокачуй еко-знання</Text>
+
+          <View style={styles.chipsRow}>
+            {chips.map((c, idx) => (
+              <View key={idx} style={styles.chip}>
+                <Text style={styles.chipText}>{c.text}</Text>
+              </View>
+            ))}
+          </View>
+
+          {errorText ? (
+            <Pressable onPress={refresh} style={styles.errorBox}>
+              <Text style={styles.errorText}>⚠️ {errorText} (натисни, щоб оновити)</Text>
+            </Pressable>
+          ) : null}
+
+          {toast ? (
+            <View style={styles.toast}>
+              <Text style={styles.toastText}>{toast}</Text>
             </View>
-          ))}
+          ) : null}
         </View>
 
-        {errorText ? (
-          <Pressable onPress={refresh} style={styles.errorBox}>
-            <Text style={styles.errorText}>⚠️ {errorText} (натисни, щоб оновити)</Text>
+        <View style={styles.grid}>
+          <Card
+            title="🌿 Еко-факти"
+            desc="Швидкі факти — і бонусні бали"
+            onPress={() => navigation.navigate("EcoFacts")}
+            styles={styles}
+          />
+          <Card
+            title="🧠 Міф чи правда?"
+            desc="Вгадай правильно — отримай більше"
+            onPress={() => navigation.navigate("MyTruth")}
+            styles={styles}
+          />
+          <Card
+            title="❓ Панда питає"
+            desc="Короткі питання з варіантами"
+            onPress={() => navigation.navigate("PandaAsks")}
+            styles={styles}
+          />
+          <Card
+            title="🗑️ Сортування"
+            desc="Що куди викидати?"
+            onPress={() => navigation.navigate("Sorting")}
+            styles={styles}
+          />
+        </View>
+
+        <View style={styles.row}>
+          <Pressable onPress={() => navigation.navigate("PandaShop")} style={styles.primaryBtn}>
+            <Text style={styles.primaryBtnText}>🛍️ Магазин панди</Text>
           </Pressable>
-        ) : null}
 
-        {toast ? (
-          <View style={styles.toast}>
-            <Text style={styles.toastText}>{toast}</Text>
-          </View>
-        ) : null}
-      </View>
+          <Pressable onPress={testPlusOne} style={styles.secondaryBtn}>
+            <Text style={styles.secondaryBtnText}>🧪 Тест: +1 бал</Text>
+          </Pressable>
+        </View>
 
-      <View style={styles.grid}>
-        <Card title="🌿 Еко-факти" desc="Швидкі факти — і бонусні бали" onPress={() => navigation.navigate("EcoFacts")} styles={styles} />
-        <Card title="🧠 Міф чи правда?" desc="Вгадай правильно — отримай більше" onPress={() => navigation.navigate("MyTruth")} styles={styles} />
-        <Card title="❓ Панда питає" desc="Короткі питання з варіантами" onPress={() => navigation.navigate("PandaAsks")} styles={styles} />
-        <Card title="🗑️ Сортування" desc="Що куди викидати?" onPress={() => navigation.navigate("Sorting")} styles={styles} />
-      </View>
-
-      <View style={styles.row}>
-        <Pressable onPress={() => navigation.navigate("PandaShop")} style={styles.primaryBtn}>
-          <Text style={styles.primaryBtnText}>🛍️ Магазин панди</Text>
-        </Pressable>
-
-        <Pressable onPress={testPlusOne} style={styles.secondaryBtn}>
-          <Text style={styles.secondaryBtnText}>🧪 Тест: +1 бал</Text>
-        </Pressable>
-      </View>
-
-      <Text style={styles.note}>Якщо бали не ростуть — значить спрацював денний ліміт (сервер).</Text>
-    </ScrollView>
+        <Text style={styles.note}>Якщо бали не ростуть — значить спрацював денний ліміт (сервер).</Text>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -111,11 +141,10 @@ function createStyles(colors: any, isDark: boolean) {
   const card = colors?.card ?? (isDark ? "#15171A" : "white");
   const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
   const border = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(0,0,0,0.10)");
-
   const heroBg = isDark ? "rgba(47,111,78,0.14)" : "rgba(248,251,249,1)";
 
   return StyleSheet.create({
-    container: { padding: 16, paddingBottom: 32, gap: 14, backgroundColor: bg },
+    container: { padding: 16, paddingTop: 8, paddingBottom: 32, gap: 14, backgroundColor: bg },
 
     hero: {
       padding: 16,
