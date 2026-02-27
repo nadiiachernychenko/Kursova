@@ -21,7 +21,7 @@ export type EcoAssistantResult = {
   answer: string;
 
   categoryId?: WasteCategoryId;
-  confidence?: number; // 0..1
+  confidence?: number; 
   followUp?: string;
 
   resolved?: boolean;

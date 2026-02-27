@@ -7,8 +7,8 @@ import { useAppTheme } from "../lib/theme";
 
 type Props = {
   title?: string;
-  showTitle?: boolean;   // NEW
-  offsetY?: number;      // NEW (если захочешь чуть опустить/поднять)
+  showTitle?: boolean;  
+  offsetY?: number;      
 };
 
 const FONTS = {

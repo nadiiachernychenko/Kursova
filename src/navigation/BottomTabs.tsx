@@ -2,6 +2,7 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
+import GoodDeedsStack from "./GoodDeedsStack";
 
 import HomeStack from "./HomeStack";
 import SortStack from "./SortStack";
@@ -18,6 +19,7 @@ export type RootTabParamList = {
   PandaTeach: undefined;
   More: undefined;
   Map: undefined;
+  GoodDeeds: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -91,6 +93,16 @@ export default function BottomTabs() {
           tabBarIcon: ({ color, size }) => <Ionicons name="map" color={color} size={size} />,
         }}
       />
+      <Tab.Screen
+  name="GoodDeeds"
+  component={GoodDeedsStack}
+  options={{
+    title: "Мої справи",
+    tabBarIcon: ({ color, size }) => (
+      <Ionicons name="sparkles-outline" size={size} color={color} />
+    ),
+  }}
+/>
     </Tab.Navigator>
   );
 }

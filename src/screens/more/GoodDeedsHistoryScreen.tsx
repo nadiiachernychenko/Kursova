@@ -11,11 +11,10 @@ import {
   TextInput,
   Keyboard,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Calendar, DateData } from "react-native-calendars";
-
+import AppTopBar from "../../components/AppTopBar";
 import { useAppTheme } from "../../lib/theme";
 import {
   getEcoHistory,
@@ -299,12 +298,14 @@ export function GoodDeedsHistoryScreen() {
   }
 
   return (
+    
     <SafeAreaView style={styles.root}>
       <View style={StyleSheet.absoluteFill}>
         <View style={styles.bgGradient} />
         <Image source={LEAVES} resizeMode="cover" style={styles.bgLeaves} />
         <View style={styles.bgOverlay} pointerEvents="none" />
       </View>
+    <AppTopBar showTitle={false} />
 
       <FlatList
         style={{ flex: 1 }}
@@ -317,8 +318,6 @@ export function GoodDeedsHistoryScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.h1}>Історія добрих справ</Text>
-            <Text style={styles.sub}>Тут зібрані всі твої еко-кроки 💚</Text>
 
             <View style={styles.filtersRow}>
               <View style={styles.searchBox}>
@@ -556,8 +555,7 @@ function createStyles(colors: any, isDark: boolean, bottomInset: number) {
     bgLeaves: { ...StyleSheet.absoluteFillObject, opacity: isDark ? 0.08 : 0.1, transform: [{ scale: 1.08 }] },
     bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.18)" },
 
-    listContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: bottomInset + 16 },
-
+listContent: { paddingHorizontal: 16, paddingTop: 12 + 52, paddingBottom: bottomInset + 16 },
     header: { marginBottom: 10 },
     h1: { fontSize: 20, color: text, fontFamily: "Nunito_800ExtraBold" },
     sub: { marginTop: 6, marginBottom: 12, fontSize: 13, color: sub, fontFamily: "Manrope_600SemiBold" },

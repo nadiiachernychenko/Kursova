@@ -1,7 +1,7 @@
 export type FaqCategory = "start" | "points" | "reminders" | "account";
 
 export type FaqItem = {
-  id: string; // suffix id
+  id: string; 
   category: FaqCategory;
   tags?: string[];
 };
