@@ -7,26 +7,32 @@ import { useAppTheme } from "../lib/theme";
 
 type Props = {
   title?: string;
-  showTitle?: boolean;  
-  offsetY?: number;      
+  showTitle?: boolean;
+  offsetY?: number;
+
+  // NEW:
+  variant?: "menu" | "none"; // menu = 3 полоски, none = пусто
 };
 
 const FONTS = {
   strong: "Manrope_700Bold",
 } as const;
 
-export default function AppTopBar({ title, showTitle = true, offsetY = 0 }: Props) {
+export default function AppTopBar({
+  title,
+  showTitle = true,
+  offsetY = 0,
+  variant = "menu",
+}: Props) {
   const navigation = useNavigation<any>();
   const { colors, isDark } = useAppTheme() as any;
 
   const PAL = useMemo(() => {
     const accent = "#2F6F4E";
     const text = colors?.text ?? (isDark ? "#F2F3F4" : "#111214");
-    const line = colors?.border ?? (isDark ? "rgba(242,243,244,0.10)" : "rgba(17,18,20,0.08)");
     return {
       accent,
       text,
-      line,
       btnBg: isDark ? "rgba(47,111,78,0.22)" : "rgba(47,111,78,0.14)",
       btnBorder: isDark ? "rgba(47,111,78,0.55)" : "rgba(47,111,78,0.35)",
     };
@@ -34,36 +40,39 @@ export default function AppTopBar({ title, showTitle = true, offsetY = 0 }: Prop
 
   const styles = useMemo(() => createStyles(PAL), [PAL]);
 
-  return (
-  <View style={[styles.topBar, { top: offsetY }]}>
-    <SafeAreaView edges={["top"]}>
-      <View style={styles.topBarInner}>
-        {showTitle ? (
-          <Text style={styles.topBarTitle} numberOfLines={1}>
-            {title ?? ""}
-          </Text>
-        ) : (
-          <View style={{ width: 1, height: 1 }} />
-        )}
+  // ✅ Внутрішні екрани: ПОВНІСТЮ ПУСТО
+  if (variant === "none") return null;
 
-        <Pressable
-          onPress={() => navigation.navigate("More")}
-          hitSlop={10}
-          style={({ pressed }) => [
-            styles.menuBtn,
-            {
-              opacity: pressed ? 0.75 : 1,
-              backgroundColor: PAL.btnBg,
-              borderColor: PAL.btnBorder,
-            },
-          ]}
-        >
-          <Ionicons name="menu-outline" size={24} color={PAL.accent} />
-        </Pressable>
-      </View>
-    </SafeAreaView>
-  </View>
-);
+  return (
+    <View style={[styles.topBar, { top: offsetY }]}>
+      <SafeAreaView edges={["top"]}>
+        <View style={styles.topBarInner}>
+          {showTitle ? (
+            <Text style={styles.topBarTitle} numberOfLines={1}>
+              {title ?? ""}
+            </Text>
+          ) : (
+            <View style={{ width: 1, height: 1 }} />
+          )}
+
+          <Pressable
+            onPress={() => navigation.navigate("More")}
+            hitSlop={10}
+            style={({ pressed }) => [
+              styles.menuBtn,
+              {
+                opacity: pressed ? 0.75 : 1,
+                backgroundColor: PAL.btnBg,
+                borderColor: PAL.btnBorder,
+              },
+            ]}
+          >
+            <Ionicons name="menu-outline" size={24} color={PAL.accent} />
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
 }
 
 function createStyles(PAL: any) {
@@ -85,6 +94,8 @@ function createStyles(PAL: any) {
       right: 0,
       top: 0,
       zIndex: 1000,
+      // ✅ НІЯКИХ фонов/смужок
+      backgroundColor: "transparent",
     },
     topBarInner: {
       paddingHorizontal: 14,

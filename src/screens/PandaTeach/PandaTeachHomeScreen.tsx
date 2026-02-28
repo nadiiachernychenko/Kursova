@@ -40,15 +40,16 @@ export default function PandaTeachHomeScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Топбар как на главной/сортуванні: только ☰, без заголовка */}
+      {}
       <AppTopBar showTitle={false} />
 
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          {/* Оставляем только один заголовок внутри экрана */}
+          {}
           <Text style={styles.title}>🐼 Панда вчить</Text>
           <Text style={styles.subtitle}>Грай 2 хвилини — і прокачуй еко-знання</Text>
 
@@ -74,6 +75,12 @@ export default function PandaTeachHomeScreen() {
         </View>
 
         <View style={styles.grid}>
+          <Card
+    title="🧩 Новачок: старт"
+    desc="Короткий тест + пояснення"
+    onPress={() => navigation.navigate("BeginnerQuestions")}
+    styles={styles}
+  />
           <Card
             title="🌿 Еко-факти"
             desc="Швидкі факти — і бонусні бали"

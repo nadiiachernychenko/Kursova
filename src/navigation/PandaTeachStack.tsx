@@ -7,6 +7,7 @@ import MyTruthScreen from "../screens/PandaTeach/MyTruthScreen";
 import PandaAsksScreen from "../screens/PandaTeach/PandaAsksScreen";
 import SortingScreen from "../screens/PandaTeach/SortingScreen";
 import PandaShopScreen from "../screens/PandaTeach/PandaShopScreen";
+import BeginnerQuestionsScreen from "../screens/PandaTeach/BeginnerQuestionsScreen";
 
 export type PandaTeachStackParamList = {
   PandaTeachHome: undefined;
@@ -15,6 +16,8 @@ export type PandaTeachStackParamList = {
   PandaAsks: undefined;
   Sorting: undefined;
   PandaShop: undefined;
+  Beginner: undefined;
+  BeginnerQuestions: undefined;
 };
 
 const Stack = createNativeStackNavigator<PandaTeachStackParamList>();
@@ -28,6 +31,12 @@ export default function PandaTeachStack() {
       <Stack.Screen name="PandaAsks" component={PandaAsksScreen} />
       <Stack.Screen name="Sorting" component={SortingScreen} />
       <Stack.Screen name="PandaShop" component={PandaShopScreen} />
+      <Stack.Screen
+  name="Beginner"
+  component={BeginnerQuestionsScreen}
+  options={{ headerShown: false }}
+/>
+      <Stack.Screen name="BeginnerQuestions" component={BeginnerQuestionsScreen} />
     </Stack.Navigator>
   );
 }

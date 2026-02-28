@@ -103,8 +103,6 @@ export default function FavoritesScreen({ navigation }: any) {
         parent.navigate("Map", { screen: "MapMain", params });
         return;
       }
-
-      // fallback
       navigation.navigate("MapMain", params);
     },
     [nav, navigation]

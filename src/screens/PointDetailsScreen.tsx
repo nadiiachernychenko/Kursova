@@ -49,7 +49,7 @@ function formatSlots(slots?: HoursSlot[]) {
 }
 
 function todayKey(): keyof HoursJson {
-  const d = new Date().getDay(); // 0=Sun
+  const d = new Date().getDay(); 
   return d === 0
     ? "sun"
     : (["mon", "tue", "wed", "thu", "fri", "sat"][d - 1] as any);
@@ -150,7 +150,7 @@ export default function PointDetailsScreen({ route }: any) {
 
       {point.note ? <Text style={styles.note}>{point.note}</Text> : null}
 
-      {/* КНОПКИ ДЕЙСТВИЙ — одинаковые */}
+      {}
       <View style={styles.actionsRow}>
         <Pressable style={styles.actionBtn} onPress={openDirections}>
           <Text style={styles.actionText}>🧭 Маршрут</Text>

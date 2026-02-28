@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-export type EduSource = "facts" | "myth" | "asks" | "sorting" | "lesson_bonus";
+export type EduSource = "facts" | "myth" | "asks" | "sorting" | "lesson_bonus" | "beginner";;
 
 function errMsg(e: any) {
   return e?.message || e?.error_description || e?.details || String(e ?? "Unknown error");

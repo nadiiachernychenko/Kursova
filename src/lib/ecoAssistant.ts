@@ -1,11 +1,10 @@
 // src/lib/ecoAssistant.ts
 import type { WasteCategoryId } from "../data/sorting";
+
 export type EcoAssistantPayload = {
   query?: string;
   barcode?: string;
   hint?: string;
-
-
   wantStructured?: boolean;
 };
 
@@ -17,13 +16,24 @@ export type EcoAssistantProduct = {
   cached?: boolean;
 };
 
+export type BeginnerAnswers = {
+  multi?: Record<string, string[]>;
+  single?: Record<string, string>;
+  text?: Record<string, string>;
+};
+
+export type BeginnerPlanResult = {
+  plan: string;
+  bullets?: string[] | null;
+  warnings?: string[] | null;
+};
+
+
 export type EcoAssistantResult = {
   answer: string;
-
   categoryId?: WasteCategoryId;
-  confidence?: number; 
+  confidence?: number;
   followUp?: string;
-
   resolved?: boolean;
   product?: EcoAssistantProduct;
 };
@@ -35,13 +45,14 @@ function clamp01(x: any): number | undefined {
   if (n > 1) return 1;
   return n;
 }
+
 const ALLOWED_CATS: WasteCategoryId[] = ["paper", "plastic", "glass", "metal", "organic", "hazard"];
 
 function normalizeCatId(v: any): WasteCategoryId | undefined {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
   return (ALLOWED_CATS as string[]).includes(s) ? (s as WasteCategoryId) : undefined;
 }
-function safeJsonParse(text: string): any | null {
+export function safeJsonParse(text: string): any | null {
   try {
     return JSON.parse(text);
   } catch {
@@ -56,9 +67,7 @@ function safeJsonParse(text: string): any | null {
 }
 
 function normalizeResult(raw: any): EcoAssistantResult {
-  if (typeof raw === "string") {
-    return { answer: raw };
-  }
+  if (typeof raw === "string") return { answer: raw };
 
   const answer =
     typeof raw?.answer === "string"
@@ -67,12 +76,11 @@ function normalizeResult(raw: any): EcoAssistantResult {
       ? raw.text
       : typeof raw?.message === "string"
       ? raw.message
-            : "Не зміг сформувати відповідь. Спробуй уточнити предмет/упаковку.";;
+      : "Не зміг сформувати відповідь. Спробуй уточнити предмет/упаковку.";
 
-const categoryId = normalizeCatId(raw?.categoryId);
+  const categoryId = normalizeCatId(raw?.categoryId);
   const confidence = clamp01(raw?.confidence);
   const followUp = typeof raw?.followUp === "string" ? raw.followUp : undefined;
-
   const resolved = typeof raw?.resolved === "boolean" ? raw.resolved : undefined;
 
   const product =
@@ -82,17 +90,11 @@ const categoryId = normalizeCatId(raw?.categoryId);
           brand: typeof raw.product.brand === "string" ? raw.product.brand : undefined,
           source: typeof raw.product.source === "string" ? raw.product.source : undefined,
           image_url: typeof raw.product.image_url === "string" ? raw.product.image_url : undefined,
-cached: typeof raw.product.cached === "boolean" ? raw.product.cached : undefined,
-}      : undefined;
+          cached: typeof raw.product.cached === "boolean" ? raw.product.cached : undefined,
+        }
+      : undefined;
 
-  return {
-    answer,
-    categoryId,
-    confidence,
-    followUp,
-    resolved,
-    product,
-  };
+  return { answer, categoryId, confidence, followUp, resolved, product };
 }
 
 export async function askEcoAssistant(payload: EcoAssistantPayload): Promise<EcoAssistantResult> {
@@ -120,9 +122,55 @@ export async function askEcoAssistant(payload: EcoAssistantPayload): Promise<Eco
   const parsed = safeJsonParse(text);
   const body = parsed ?? text;
 
-  if (!r.ok) {
-    throw new Error(typeof body === "string" ? body : JSON.stringify(body));
-  }
+  if (!r.ok) throw new Error(typeof body === "string" ? body : JSON.stringify(body));
 
   return normalizeResult(body);
+}
+
+export async function getBeginnerPlan(answers: BeginnerAnswers): Promise<BeginnerPlanResult> {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) throw new Error("Missing Supabase env");
+
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 30000); // 30с на клиенте
+
+  try {
+    const r = await fetch(`${url}/functions/v1/eco-assistant`, {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: {
+        "content-type": "application/json",
+        apikey: anon,
+        authorization: `Bearer ${anon}`,
+      } as any,
+      body: JSON.stringify({
+        kind: "beginner-plan",
+        answers,
+      }),
+    });
+
+    const text = await r.text();
+    const parsed = safeJsonParse(text);
+    const body = parsed ?? text;
+
+    if (!r.ok) {
+      throw new Error(typeof body === "string" ? body : JSON.stringify(body));
+    }
+
+    if (typeof body === "string") return { plan: body };
+
+    return {
+      plan: typeof body?.plan === "string" ? body.plan : "Не вдалося сформувати план.",
+      bullets: Array.isArray(body?.bullets) ? body.bullets : undefined,
+      warnings: Array.isArray(body?.warnings) ? body.warnings : undefined,
+    };
+  } catch (e: any) {
+    if (String(e?.message ?? "").toLowerCase().includes("aborted")) {
+      throw new Error("Занадто довго. Спробуй ще раз ✨");
+    }
+    throw e;
+  } finally {
+    clearTimeout(t);
+  }
 }
