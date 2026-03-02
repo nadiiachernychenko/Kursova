@@ -101,7 +101,6 @@ content: { flex: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 },
       paddingVertical: 6,
     },
     badgeText: { color: C.accent, fontSize: 12, fontFamily: FONTS.strong },
-    softDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: C.accent, opacity: 0.35 },
 
     levelRow: { flexDirection: "row", alignItems: "flex-end", gap: 12 },
     levelBig: { fontSize: 56, lineHeight: 60, color: C.text, fontFamily: FONTS.title, letterSpacing: -0.5 },
@@ -272,7 +271,6 @@ export function EcoLevelStubScreen() {
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>EcoLife</Text>
               </View>
-              <View style={styles.softDot} />
             </View>
 
             {loading ? (

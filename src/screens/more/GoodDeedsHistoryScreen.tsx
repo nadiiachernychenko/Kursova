@@ -555,7 +555,7 @@ function createStyles(colors: any, isDark: boolean, bottomInset: number) {
     bgLeaves: { ...StyleSheet.absoluteFillObject, opacity: isDark ? 0.08 : 0.1, transform: [{ scale: 1.08 }] },
     bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: isDark ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.18)" },
 
-listContent: { paddingHorizontal: 16, paddingTop: 12 + 52, paddingBottom: bottomInset + 16 },
+listContent: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: bottomInset + 16 },
     header: { marginBottom: 10 },
     h1: { fontSize: 20, color: text, fontFamily: "Nunito_800ExtraBold" },
     sub: { marginTop: 6, marginBottom: 12, fontSize: 13, color: sub, fontFamily: "Manrope_600SemiBold" },

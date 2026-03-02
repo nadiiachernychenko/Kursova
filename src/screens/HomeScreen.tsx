@@ -334,7 +334,6 @@ heroContent: {
       paddingVertical: 6,
     },
 badgeText: { color: COLORS.accent, fontSize: 12, fontFamily: FONTS.strong },
-    softDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: COLORS.teal, opacity: 0.55 },
 
 greeting: { fontSize: 14, color: COLORS.text, opacity: 0.85, fontFamily: FONTS.strong },
 heroTitle: { marginTop: 6, fontSize: 20, color: COLORS.text, fontFamily: FONTS.title },
@@ -342,28 +341,31 @@ heroSub: { marginTop: 8, fontSize: 13, color: COLORS.sub, lineHeight: 18, fontFa
 
     heroCtaRow: { flexDirection: "row", gap: 10, marginTop: 14 },
     primaryBtn: {
-      flex: 1,
-      backgroundColor: COLORS.accentSoft,
-      borderWidth: 1,
-borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
-      borderRadius: 14,
-      paddingVertical: 12,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: 14,
-    },
+  flex: 1,
+  minWidth: 0,
+  backgroundColor: COLORS.accentSoft,
+  borderWidth: 1,
+  borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+  borderRadius: 14,
+  paddingVertical: 12,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingHorizontal: 14,
+},
 primaryBtnText: { color: COLORS.accent, fontSize: 13, fontFamily: FONTS.strong },
 
     secondaryBtn: {
-      backgroundColor: COLORS.card,
-      borderWidth: 1,
-      borderColor: COLORS.line,
-      borderRadius: 14,
-      paddingVertical: 12,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: 14,
-    },
+  flex: 1,
+  minWidth: 0,
+  backgroundColor: COLORS.card,
+  borderWidth: 1,
+  borderColor: COLORS.line,
+  borderRadius: 14,
+  paddingVertical: 12,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingHorizontal: 14,
+},
 secondaryBtnText: { color: COLORS.text, fontSize: 13, fontFamily: "Manrope_700Bold" },
 
     sectionHeader: {
@@ -785,11 +787,10 @@ return (
     onPress={() => navigation.navigate("Map" as never)}
     style={[styles.heroInner, styles.heroContent]}
   >
-           <View style={styles.heroTopRow}>
+         <View style={styles.heroTopRow}>
   <View style={styles.badge}>
-    <Text style={styles.badgeText}>EcoLife</Text>
+    <Text style={styles.badgeText}>EcoLife • Main</Text>
   </View>
-  <View style={styles.softDot} />
 </View>
 
             <Text style={styles.greeting}>{greeting} ✨</Text>

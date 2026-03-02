@@ -200,7 +200,6 @@ function createStyles(COLORS: Pal, isDark: boolean) {
     heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
     badge: { backgroundColor: COLORS.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
     badgeText: { color: COLORS.accent, fontSize: 12, fontFamily: FONTS.strong },
-    softDot: { width: 10, height: 10, borderRadius: 999, backgroundColor: COLORS.teal, opacity: 0.55 },
 
     heroTitle: { marginTop: 2, fontSize: 20, color: COLORS.text, fontFamily: FONTS.title },
     heroSub: { marginTop: 8, fontSize: 13, color: COLORS.sub, lineHeight: 18, fontFamily: FONTS.body },
@@ -499,7 +498,6 @@ setFollowUp(null);
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>EcoLife • Assistant</Text>
               </View>
-              <View style={styles.softDot} />
             </View>
 
             <Text style={styles.heroTitle}>{title}</Text>

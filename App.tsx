@@ -45,7 +45,7 @@ export default function App() {
       } finally {
         setAppReady(true);
         SplashScreen.hideAsync();
-        setTimeout(() => setShowOverlay(false), 1600);
+        setTimeout(() => setShowOverlay(false), 5000);
       }
     })();
   }, [fontsLoaded]);
