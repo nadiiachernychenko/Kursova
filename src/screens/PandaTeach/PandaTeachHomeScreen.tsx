@@ -30,7 +30,7 @@ export default function PandaTeachHomeScreen() {
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh])
+    }, [])
   );
 
   const games: Item[] = useMemo(

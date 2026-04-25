@@ -242,7 +242,6 @@ export default function BeginnerQuestionsScreen() {
     }
   };
 
-  // ✅ 1 клик: закрыть клаву + перейти дальше
   const next = () => {
     if (aiLoading) return;
     if (!canNext) return;
@@ -262,7 +261,6 @@ export default function BeginnerQuestionsScreen() {
 
   const progress = (idx + 1) / steps.length;
 
-  // ---------------- RESULT ----------------
   if (aiResult) {
     return (
       <View style={styles.root}>
@@ -311,7 +309,6 @@ export default function BeginnerQuestionsScreen() {
     );
   }
 
-  // ---------------- QUESTIONS ----------------
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -572,7 +569,6 @@ function createStyles(COLORS: Colors, isDark: boolean) {
     chipText: { color: COLORS.text, fontSize: 12, fontFamily: FONTS.strong, opacity: 0.9, flexShrink: 1 },
     chipTextOn: { color: COLORS.accent, opacity: 1 },
 
-    // ✅ маленькая кругляшка (без огромных серых элементов)
     dot: {
       width: 10,
       height: 10,

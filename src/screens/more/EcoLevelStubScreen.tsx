@@ -144,7 +144,7 @@ content: { flex: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 18 },
   });
 }
 
-export function EcoLevelStubScreen() {
+export  default function EcoLevelStubScreen() {
   const { colors, isDark } = useAppTheme() as any;
   const t = useT();
 
@@ -345,4 +345,3 @@ export function EcoLevelStubScreen() {
 );
 }
 
-export default EcoLevelStubScreen;

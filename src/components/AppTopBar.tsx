@@ -9,9 +9,7 @@ type Props = {
   title?: string;
   showTitle?: boolean;
   offsetY?: number;
-
-  // NEW:
-  variant?: "menu" | "none"; // menu = 3 полоски, none = пусто
+  variant?: "menu" | "none"; 
 };
 
 const FONTS = {
@@ -40,7 +38,6 @@ export default function AppTopBar({
 
   const styles = useMemo(() => createStyles(PAL), [PAL]);
 
-  // ✅ Внутрішні екрани: ПОВНІСТЮ ПУСТО
   if (variant === "none") return null;
 
   return (
@@ -94,7 +91,6 @@ function createStyles(PAL: any) {
       right: 0,
       top: 0,
       zIndex: 1000,
-      // ✅ НІЯКИХ фонов/смужок
       backgroundColor: "transparent",
     },
     topBarInner: {

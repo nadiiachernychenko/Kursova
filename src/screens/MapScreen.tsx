@@ -11,11 +11,9 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
-import AppTopBar from "../components/AppTopBar";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Marker, Region, PROVIDER_GOOGLE } from "react-native-maps";
 import ClusteredMapView from "react-native-map-clustering";
 import * as Location from "expo-location";
-import { useAppTheme } from "../lib/theme"; 
 import { CATEGORIES, type WasteCategoryId } from "../data/sorting";
 import { supabase } from "../lib/supabase";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -80,6 +78,7 @@ export default function MapScreen({ route }: any) {
           setLoadingGeo(false);
           return;
         }
+
         const loc = await Location.getCurrentPositionAsync({});
         const reg: Region = {
           latitude: loc.coords.latitude,
@@ -148,6 +147,7 @@ export default function MapScreen({ route }: any) {
       latitudeDelta: 0.01,
       longitudeDelta: 0.01,
     };
+
     requestAnimationFrame(() => {
       mapRef.current?.animateToRegion(region, 900);
     });
@@ -228,82 +228,54 @@ export default function MapScreen({ route }: any) {
   }, [query, points]);
 
   const activeFilterTitle = useMemo(() => {
-    if (selected === "all") return "Усі";
+    if (selected === "all") return "Усі категорії";
     const c = CATEGORIES.find((x) => x.id === selected);
     return c ? `${c.emoji} ${c.title}` : "Фільтр";
   }, [selected]);
-const renderCluster = useCallback((cluster: any) => {
-  const { id, geometry, properties } = cluster;
-  const count: number = properties.point_count;
 
-  const coordinate = {
-    latitude: geometry.coordinates[1],
-    longitude: geometry.coordinates[0],
-  };
+  const renderCluster = useCallback((cluster: any) => {
+    const { id, geometry, properties } = cluster;
+    const count: number = properties.point_count;
 
-  return (
-    <Marker
-      key={`cluster-${id}`}
-      coordinate={coordinate}
-      tracksViewChanges={true}
-      anchor={{ x: 0.5, y: 0.5 }}
-    >
-      <View
-        collapsable={false} 
-        renderToHardwareTextureAndroid 
-        style={styles.clusterOuter}
+    const coordinate = {
+      latitude: geometry.coordinates[1],
+      longitude: geometry.coordinates[0],
+    };
+
+    return (
+      <Marker
+        key={`cluster-${id}`}
+        coordinate={coordinate}
+        tracksViewChanges={true}
+        anchor={{ x: 0.5, y: 0.5 }}
       >
-        <Text
-          style={styles.clusterText}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.75}
-        >
-          {String(count)}
-        </Text>
-      </View>
-    </Marker>
-  );
-}, []);
-
- 
-
+        <View collapsable={false} renderToHardwareTextureAndroid style={styles.clusterOuter}>
+          <View style={styles.clusterInner}>
+            <Text
+              style={styles.clusterText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {String(count)}
+            </Text>
+          </View>
+        </View>
+      </Marker>
+    );
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <Text style={styles.topTitle}>Карта</Text>
-
-        <View style={styles.topBtns}>
-          <Pressable style={styles.topBtn} onPress={() => setFilterOpen(true)}>
-            <Text style={styles.topBtnText}>{activeFilterTitle}</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.topBtnIcon}
-            onPress={() => setSearchOpen(true)}
-          >
-            <Text style={styles.topBtnIconText}>🔎</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.topBtnIcon}
-            onPress={() => loadPoints(selected)}
-          >
-            <Text style={styles.topBtnIconText}>↻</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* MAP */}
       <View style={styles.mapWrap}>
         {isLoading ? (
           <View style={styles.center}>
-            <ActivityIndicator />
-            <Text style={styles.loadingText}>
-              {loadingGeo ? "Отримую геолокацію…" : "Завантажую пункти…"}
-            </Text>
+            <View style={styles.loaderCard}>
+              <ActivityIndicator size="small" color="#2F9E77" />
+              <Text style={styles.loadingText}>
+                {loadingGeo ? "Отримую геолокацію…" : "Завантажую пункти…"}
+              </Text>
+            </View>
           </View>
         ) : (
           <>
@@ -312,13 +284,29 @@ const renderCluster = useCallback((cluster: any) => {
               onMapReady={() => setMapReady(true)}
               style={StyleSheet.absoluteFill}
               initialRegion={KYIV}
-              showsUserLocation={!permissionDenied}
+              showsUserLocation={false}
               showsMyLocationButton={false}
               onPress={() => setSelectedPoint(null)}
               radius={Platform.OS === "ios" ? 40 : 50}
               animationEnabled
               renderCluster={renderCluster}
+              provider={PROVIDER_GOOGLE}
             >
+              {userRegion && !permissionDenied ? (
+                <Marker
+                  coordinate={{
+                    latitude: userRegion.latitude,
+                    longitude: userRegion.longitude,
+                  }}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  tracksViewChanges={false}
+                >
+                  <View style={styles.userDotOuter}>
+                    <View style={styles.userDotInner} />
+                  </View>
+                </Marker>
+              ) : null}
+
               {points.map((p) => (
                 <Marker
                   key={p.id}
@@ -331,22 +319,39 @@ const renderCluster = useCallback((cluster: any) => {
               ))}
             </ClusteredMapView>
 
-            {/* Floating buttons */}
+            <View style={styles.topOverlay}>
+              <View style={styles.headerCard}>
+                <View style={styles.actionsRow}>
+                  <Pressable style={styles.filterBtn} onPress={() => setFilterOpen(true)}>
+                    <Text style={styles.filterBtnText} numberOfLines={1}>
+                      {activeFilterTitle}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable style={styles.iconBtnGreen} onPress={() => setSearchOpen(true)}>
+                    <Text style={styles.iconBtnTextLight}>🔎</Text>
+                  </Pressable>
+
+                  <Pressable style={styles.iconBtnSoft} onPress={() => loadPoints(selected)}>
+                    <Text style={styles.iconBtnText}>↻</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+
             <View style={styles.fabs}>
               <Pressable
-                style={styles.fab}
-                onPress={() =>
-                  mapRef.current?.animateToRegion(userRegion ?? KYIV, 900)
-                }
+                style={[styles.fab, styles.fabPrimary]}
+                onPress={() => mapRef.current?.animateToRegion(userRegion ?? KYIV, 900)}
               >
-                <Text style={styles.fabText}>📍</Text>
+                <Text style={styles.fabText}>Я</Text>
               </Pressable>
 
               <Pressable
                 style={styles.fab}
                 onPress={() => mapRef.current?.animateToRegion(KYIV, 900)}
               >
-                <Text style={styles.fabText}>🏙️</Text>
+                <Text style={styles.fabText}>Київ</Text>
               </Pressable>
 
               {focusOnly ? (
@@ -358,12 +363,11 @@ const renderCluster = useCallback((cluster: any) => {
 
             {error ? (
               <View style={styles.banner}>
-                <Text style={styles.bannerTitle}>⚠️ Помилка</Text>
+                <Text style={styles.bannerTitle}>Помилка</Text>
                 <Text style={styles.bannerText}>{error}</Text>
               </View>
             ) : null}
 
-            {/* Bottom sheet */}
             {selectedPoint ? (
               <View style={styles.sheet}>
                 <View style={styles.sheetHandle} />
@@ -371,27 +375,28 @@ const renderCluster = useCallback((cluster: any) => {
                 <Text style={styles.sheetTitle} numberOfLines={1}>
                   {selectedPoint.name}
                 </Text>
+
                 <Text style={styles.sheetAddr} numberOfLines={2}>
                   {selectedPoint.address}
                 </Text>
 
-                <Text style={styles.sheetCats} numberOfLines={2}>
-                  {selectedPoint.categories
-                    .map((id) => {
-                      const c = CATEGORIES.find((x) => x.id === id);
-                      return c ? `${c.emoji} ${c.title}` : id;
-                    })
-                    .join(" • ")}
-                </Text>
+                <View style={styles.categoryPill}>
+                  <Text style={styles.categoryPillText} numberOfLines={2}>
+                    {selectedPoint.categories
+                      .map((id) => {
+                        const c = CATEGORIES.find((x) => x.id === id);
+                        return c ? `${c.emoji} ${c.title}` : id;
+                      })
+                      .join(" • ")}
+                  </Text>
+                </View>
 
                 <View style={styles.sheetBtns}>
                   <Pressable
                     style={[styles.sheetBtn, styles.sheetBtnPrimary]}
                     onPress={() => openDirections(selectedPoint)}
                   >
-                    <Text
-                      style={[styles.sheetBtnText, styles.sheetBtnTextPrimary]}
-                    >
+                    <Text style={[styles.sheetBtnText, styles.sheetBtnTextPrimary]}>
                       Маршрут
                     </Text>
                   </Pressable>
@@ -407,11 +412,8 @@ const renderCluster = useCallback((cluster: any) => {
                     <Text style={styles.sheetBtnText}>Деталі</Text>
                   </Pressable>
 
-                  <Pressable
-                    style={styles.sheetBtn}
-                    onPress={() => setSelectedPoint(null)}
-                  >
-                    <Text style={styles.sheetBtnText}>✖</Text>
+                  <Pressable style={styles.closeMiniBtn} onPress={() => setSelectedPoint(null)}>
+                    <Text style={styles.closeMiniBtnText}>✕</Text>
                   </Pressable>
                 </View>
               </View>
@@ -420,23 +422,20 @@ const renderCluster = useCallback((cluster: any) => {
         )}
       </View>
 
-      {/* Filter modal */}
       <Modal
         visible={filterOpen}
         transparent
         animationType="fade"
         onRequestClose={() => setFilterOpen(false)}
       >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setFilterOpen(false)}
-        >
+        <Pressable style={styles.modalBackdrop} onPress={() => setFilterOpen(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>Фільтр</Text>
 
             <ScrollView
               style={{ maxHeight: 360 }}
               contentContainerStyle={{ paddingVertical: 6 }}
+              showsVerticalScrollIndicator={false}
             >
               <Pressable
                 style={[
@@ -449,7 +448,14 @@ const renderCluster = useCallback((cluster: any) => {
                   setFilterOpen(false);
                 }}
               >
-                <Text style={styles.modalRowText}>✨ Усі</Text>
+                <Text
+                  style={[
+                    styles.modalRowText,
+                    selected === "all" && styles.modalRowTextActive,
+                  ]}
+                >
+                  ✨ Усі категорії
+                </Text>
               </Pressable>
 
               {CATEGORIES.map((c) => {
@@ -464,7 +470,12 @@ const renderCluster = useCallback((cluster: any) => {
                       setFilterOpen(false);
                     }}
                   >
-                    <Text style={styles.modalRowText}>
+                    <Text
+                      style={[
+                        styles.modalRowText,
+                        active && styles.modalRowTextActive,
+                      ]}
+                    >
                       {c.emoji} {c.title}
                     </Text>
                   </Pressable>
@@ -472,27 +483,20 @@ const renderCluster = useCallback((cluster: any) => {
               })}
             </ScrollView>
 
-            <Pressable
-              style={styles.modalClose}
-              onPress={() => setFilterOpen(false)}
-            >
+            <Pressable style={styles.modalClose} onPress={() => setFilterOpen(false)}>
               <Text style={styles.modalCloseText}>Закрити</Text>
             </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
 
-      {/* Search modal */}
       <Modal
         visible={searchOpen}
         transparent
         animationType="fade"
         onRequestClose={() => setSearchOpen(false)}
       >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setSearchOpen(false)}
-        >
+        <Pressable style={styles.modalBackdrop} onPress={() => setSearchOpen(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>Пошук</Text>
 
@@ -500,7 +504,7 @@ const renderCluster = useCallback((cluster: any) => {
               value={query}
               onChangeText={setQuery}
               placeholder="Назва або адреса…"
-              placeholderTextColor="rgba(0,0,0,0.45)"
+              placeholderTextColor="rgba(29,67,55,0.42)"
               style={styles.searchInput}
               autoCorrect={false}
               autoCapitalize="none"
@@ -508,13 +512,11 @@ const renderCluster = useCallback((cluster: any) => {
 
             <View style={styles.suggestBox}>
               {query.trim().length === 0 ? (
-                <Text style={styles.suggestEmpty}>
-                  Введи запит — покажу варіанти
-                </Text>
+                <Text style={styles.suggestEmpty}>Введи запит — покажу варіанти</Text>
               ) : suggestions.length === 0 ? (
                 <Text style={styles.suggestEmpty}>Нічого не знайдено</Text>
               ) : (
-                <ScrollView style={{ maxHeight: 320 }}>
+                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
                   {suggestions.map((p) => (
                     <Pressable
                       key={p.id}
@@ -525,7 +527,7 @@ const renderCluster = useCallback((cluster: any) => {
                       }}
                       style={({ pressed }) => [
                         styles.suggestRow,
-                        { opacity: pressed ? 0.6 : 1 },
+                        { opacity: pressed ? 0.72 : 1 },
                       ]}
                     >
                       <Text style={styles.suggestTitle} numberOfLines={1}>
@@ -558,134 +560,253 @@ const renderCluster = useCallback((cluster: any) => {
 
 const shadow = Platform.select({
   ios: {
-    shadowColor: "#000",
+    shadowColor: "#0F2D24",
     shadowOpacity: 0.12,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
   },
-  android: { elevation: 6 },
+  android: { elevation: 7 },
   default: {},
 });
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
-
-  topBar: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.06)",
-    backgroundColor: "white",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  container: {
+    flex: 1,
+    backgroundColor: "#F3F8F4",
   },
-  topTitle: { fontSize: 18, fontWeight: "900", color: "#111" },
-  topBtns: { flexDirection: "row", gap: 8, alignItems: "center" },
 
-  topBtn: {
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
-    backgroundColor: "white",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  mapWrap: {
+    flex: 1,
   },
-  topBtnText: { fontSize: 13, fontWeight: "800", color: "#111" },
 
-  topBtnIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
-    backgroundColor: "white",
+  center: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#F3F8F4",
   },
-  topBtnIconText: { fontSize: 15, fontWeight: "900", color: "#111" },
 
-  mapWrap: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  loadingText: { marginTop: 10, opacity: 0.75, color: "#111" },
-
- clusterOuter: {
-  width: 56,
-  height: 56,
-  borderRadius: 28,
-  padding: 2, 
-  backgroundColor: "#111",
-  borderWidth: 3,
-  borderColor: "rgba(255,255,255,0.92)",
-  alignItems: "center",
-  justifyContent: "center",
-},
-  clusterInner: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-clusterText: {
-  color: "white",
-  fontWeight: "900",
-  fontSize: 16,
-  lineHeight: 18,            
-  includeFontPadding: false,
-  textAlign: "center",
-  textAlignVertical: "center",
-},
-
-  fabs: { position: "absolute", right: 12, top: 12, gap: 10 },
-  fab: {
-    width: 44,
-    height: 44,
+  loaderCard: {
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderRadius: 18,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
-    backgroundColor: "white",
+    borderColor: "rgba(76,152,120,0.10)",
     alignItems: "center",
-    justifyContent: "center",
     ...shadow,
   },
-  fabText: { fontSize: 18, fontWeight: "900" },
-  fabWide: {
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
-    backgroundColor: "white",
-    borderRadius: 16,
+
+  loadingText: {
+    marginTop: 10,
+    color: "#24483B",
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  topOverlay: {
+    position: "absolute",
+    top: 6,
+    left: 12,
+    right: 12,
+  },
+
+  headerCard: {
+    backgroundColor: "rgba(255,255,255,0.97)",
+    borderRadius: 22,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(76,152,120,0.10)",
     ...shadow,
   },
-  fabWideText: { fontSize: 12, fontWeight: "900", color: "#111" },
+
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  filterBtn: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 16,
+    backgroundColor: "#EEF7F1",
+    borderWidth: 1,
+    borderColor: "rgba(76,152,120,0.14)",
+    paddingHorizontal: 14,
+    justifyContent: "center",
+  },
+
+  filterBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#264B3E",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  iconBtnSoft: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    backgroundColor: "#F5FAF7",
+    borderWidth: 1,
+    borderColor: "rgba(76,152,120,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  iconBtnGreen: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    backgroundColor: "#4D9C79",
+    borderWidth: 1,
+    borderColor: "#4D9C79",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  iconBtnText: {
+    fontSize: 16,
+    color: "#23483B",
+    fontWeight: "800",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  iconBtnTextLight: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  clusterOuter: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.95)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadow,
+  },
+
+  clusterInner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#4D9C79",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  clusterText: {
+    color: "#FFFFFF",
+    fontWeight: "900",
+    fontSize: 15,
+    includeFontPadding: false,
+    textAlign: "center",
+    textAlignVertical: "center",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  userDotOuter: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(66,133,244,0.20)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  userDotInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#4285F4",
+    borderWidth: 2.5,
+    borderColor: "#FFFFFF",
+  },
+
+  fabs: {
+    position: "absolute",
+    right: 12,
+    top: 86,
+    gap: 10,
+    alignItems: "flex-end",
+  },
+
+  fab: {
+    minWidth: 52,
+    height: 48,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderWidth: 1,
+    borderColor: "rgba(76,152,120,0.10)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadow,
+  },
+
+  fabPrimary: {
+    backgroundColor: "#DDF1E6",
+    borderColor: "rgba(76,152,120,0.14)",
+  },
+
+  fabText: {
+    fontSize: 14,
+    color: "#24483B",
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  fabWide: {
+    minHeight: 46,
+    borderRadius: 16,
+    backgroundColor: "#24483B",
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadow,
+  },
+
+  fabWideText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
 
   banner: {
     position: "absolute",
     left: 12,
     right: 12,
     bottom: 12,
-    backgroundColor: "white",
+    backgroundColor: "#FFF7F7",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.12)",
+    borderColor: "rgba(220,70,70,0.14)",
     borderRadius: 18,
-    padding: 12,
+    padding: 13,
     ...shadow,
   },
+
   bannerTitle: {
     fontSize: 14,
-    fontWeight: "900",
+    fontWeight: "800",
     marginBottom: 4,
-    color: "#111",
+    color: "#8C2F2F",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
+
   bannerText: {
     fontSize: 13,
-    opacity: 0.8,
     lineHeight: 18,
-    color: "#111",
+    color: "#7A4545",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif",
   },
 
   sheet: {
@@ -693,115 +814,223 @@ clusterText: {
     left: 12,
     right: 12,
     bottom: 12,
-    backgroundColor: "white",
+    backgroundColor: "rgba(255,255,255,0.98)",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
-    borderRadius: 22,
-    paddingHorizontal: 14,
+    borderColor: "rgba(76,152,120,0.10)",
+    borderRadius: 24,
+    paddingHorizontal: 15,
     paddingTop: 10,
     paddingBottom: 14,
     ...shadow,
   },
+
   sheetHandle: {
     alignSelf: "center",
-    width: 44,
+    width: 46,
     height: 5,
     borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.10)",
-    marginBottom: 10,
+    backgroundColor: "rgba(76,152,120,0.18)",
+    marginBottom: 12,
   },
-  sheetTitle: { fontSize: 16, fontWeight: "900", color: "#111" },
-  sheetAddr: { marginTop: 6, fontSize: 13, opacity: 0.8, color: "#111" },
-  sheetCats: { marginTop: 8, fontSize: 12, opacity: 0.7, color: "#111" },
 
-  sheetBtns: { flexDirection: "row", gap: 10, marginTop: 12 },
+  sheetTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#16372C",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  sheetAddr: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#537166",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif",
+  },
+
+  categoryPill: {
+    alignSelf: "flex-start",
+    marginTop: 10,
+    backgroundColor: "#EFF8F2",
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+
+  categoryPillText: {
+    fontSize: 12,
+    color: "#295141",
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  sheetBtns: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 14,
+    alignItems: "center",
+  },
+
   sheetBtn: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 11,
-    borderRadius: 14,
+    justifyContent: "center",
+    minHeight: 46,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
-    backgroundColor: "white",
+    borderColor: "rgba(76,152,120,0.12)",
+    backgroundColor: "#F7FBF8",
   },
+
   sheetBtnPrimary: {
-    backgroundColor: "#111",
-    borderColor: "#111",
+    backgroundColor: "#4D9C79",
+    borderColor: "#4D9C79",
   },
-  sheetBtnText: { fontSize: 13, fontWeight: "900", color: "#111" },
-  sheetBtnTextPrimary: { color: "white" },
+
+  sheetBtnText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1E4134",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  sheetBtnTextPrimary: {
+    color: "#FFFFFF",
+  },
+
+  closeMiniBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: "rgba(76,152,120,0.10)",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  closeMiniBtnText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#23483B",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
 
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "rgba(15,22,20,0.28)",
     padding: 14,
     justifyContent: "center",
   },
+
   modalCard: {
-    backgroundColor: "white",
-    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
+    borderColor: "rgba(76,152,120,0.10)",
     padding: 14,
     ...shadow,
   },
+
   modalTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#111",
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#16372C",
     marginBottom: 10,
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
 
   modalRow: {
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
+    borderColor: "rgba(0,0,0,0.07)",
     borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: "white",
+    paddingVertical: 13,
+    backgroundColor: "#FFFFFF",
     marginBottom: 8,
   },
-  modalRowActive: { borderColor: "rgba(0,0,0,0.35)" },
-  modalRowText: { fontSize: 13, fontWeight: "900", color: "#111" },
+
+  modalRowActive: {
+    borderColor: "#4D9C79",
+    backgroundColor: "#EFF8F2",
+  },
+
+  modalRowText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1D4034",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  modalRowTextActive: {
+    color: "#3B8868",
+  },
 
   modalClose: {
     alignSelf: "flex-end",
-    marginTop: 6,
+    marginTop: 8,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.12)",
+    borderColor: "rgba(76,152,120,0.10)",
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "white",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    backgroundColor: "#F7FBF8",
   },
-  modalCloseText: { fontSize: 12, fontWeight: "900", color: "#111" },
+
+  modalCloseText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#23483B",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
 
   searchInput: {
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.10)",
+    borderColor: "rgba(76,152,120,0.12)",
     borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
     fontSize: 14,
-    fontWeight: "800",
-    color: "#111",
-    backgroundColor: "white",
+    fontWeight: "700",
+    color: "#16372C",
+    backgroundColor: "#F8FCF9",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
+
   suggestBox: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
-    borderRadius: 16,
+    borderColor: "rgba(76,152,120,0.10)",
+    borderRadius: 18,
     overflow: "hidden",
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
   },
+
   suggestRow: {
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.06)",
+    borderTopColor: "rgba(0,0,0,0.05)",
   },
-  suggestTitle: { fontSize: 13, fontWeight: "900", color: "#111" },
-  suggestSub: { marginTop: 2, fontSize: 12, opacity: 0.75, color: "#111" },
-  suggestEmpty: { padding: 12, opacity: 0.75, fontWeight: "800", color: "#111" },
+
+  suggestTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#16372C",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
+
+  suggestSub: {
+    marginTop: 3,
+    fontSize: 12,
+    color: "#59746A",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif",
+  },
+
+  suggestEmpty: {
+    padding: 12,
+    color: "#5D746D",
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+  },
 });

@@ -81,8 +81,6 @@ export default function BottomTabs() {
         }}
       />
 
-    
-
       <Tab.Screen
         name="Map"
         component={MapStack}
@@ -93,14 +91,25 @@ export default function BottomTabs() {
           tabBarIcon: ({ color, size }) => <Ionicons name="map" color={color} size={size} />,
         }}
       />
+
       <Tab.Screen
-  name="GoodDeeds"
-  component={GoodDeedsStack}
+        name="GoodDeeds"
+        component={GoodDeedsStack}
+        options={{
+          headerShown: false,
+          title: "Мої справи",
+          tabBarLabel: "Мої справи",
+          tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+  name="More"
+  component={MoreStack}
   options={{
-    title: "Мої справи",
-    tabBarIcon: ({ color, size }) => (
-      <Ionicons name="sparkles-outline" size={size} color={color} />
-    ),
+    headerShown: false,
+    title: "Більше",
+    tabBarButton: () => null,
+    tabBarItemStyle: { display: "none" },
   }}
 />
     </Tab.Navigator>

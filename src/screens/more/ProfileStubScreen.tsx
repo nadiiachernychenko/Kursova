@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState , useCallback } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,8 @@ import { Calendar, DateData } from "react-native-calendars";
 import { useAppTheme } from "../../lib/theme";
 import { useT } from "../../lib/i18n";
 import { supabase } from "../../lib/supabase";
-
+import { useFocusEffect } from "@react-navigation/native";
+import { getMyBadges, type MyBadge } from "../../lib/eduApi";
 type Gender = "female" | "male" | null;
 
 type Country = {
@@ -149,7 +150,10 @@ type Pal = {
   dangerSoft: string;
   dangerText: string;
 };
-
+function pickBadge(b: MyBadge["badge"]) {
+  if (!b) return null;
+  return Array.isArray(b) ? (b[0] ?? null) : b;
+}
 function makePal(colors: any, isDark: boolean): Pal {
   const accent = "#2F6F4E";
   const bg = colors?.background ?? (isDark ? "#0E0F11" : "#F6F7F4");
@@ -345,7 +349,27 @@ export function ProfileStubScreen() {
   );
 
   const [userId, setUserId] = useState<string | null>(null);
+const [badges, setBadges] = useState<MyBadge[]>([]);
+const [badgesLoading, setBadgesLoading] = useState(false);
+useFocusEffect(
+  useCallback(() => {
+    let alive = true;
 
+    (async () => {
+      try {
+        setBadgesLoading(true);
+        const list = await getMyBadges(40);
+        if (alive) setBadges(list);
+      } finally {
+        if (alive) setBadgesLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [])
+);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState<string>("");
 
@@ -539,22 +563,58 @@ const maxMonthAllowed = cursorYear === todayYear ? todayMonth : 12;
           </View>
 
           <View style={styles.card}>
-            <View style={styles.cardInner}>
-              <Text style={styles.sectionTitle}>Дані профілю</Text>
+  <View style={styles.cardInner}>
+    <View style={{ marginTop: 14 }}>
+      <Text style={styles.sectionTitle}>Мої значки</Text>
 
-              <View style={styles.fieldWrap}>
-                <View style={styles.inputBlock}>
-                  <Text style={styles.label}>Імʼя</Text>
-                  <TextInput
-                    value={displayName}
-                    onChangeText={setDisplayName}
-                    placeholder="Наприклад: Надя"
-                    placeholderTextColor={PAL.placeholder}
-                    style={styles.input}
-                    autoCapitalize="words"
-                    returnKeyType="done"
-                  />
-                </View>
+    <View style={styles.listCard}>
+        {badgesLoading ? (
+          <View style={styles.listItem}>
+            <Text style={styles.listItemText}>Завантаження…</Text>
+          </View>
+    ) : badges.length ? (
+          badges.slice(0, 12).map((b, idx) => (
+            <View
+              key={`${b.badge_id}_${b.created_at}_${idx}`}
+              style={[
+                styles.listItem,
+                idx !== Math.min(12, badges.length) - 1
+                  ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: PAL.line }
+                  : null,
+              ]}
+            >
+          <Text style={styles.listItemText}>
+                {b.badge?.icon ? `${b.badge.icon} ` : ""}
+                {b.badge?.title ?? "Значок"}
+              </Text>
+
+              <Text style={{ fontSize: 12, color: PAL.sub, fontFamily: "Manrope_700Bold" }}>
+                {b.badge?.rarity ?? ""}
+              </Text>
+            </View>
+          ))
+        ) : (
+      <View style={styles.listItem}>
+            <Text style={styles.listItemText}>Поки немає значків</Text>
+          </View>
+        )}
+      </View>
+    </View>
+                <Text style={[styles.sectionTitle, { marginTop: 14 }]}>Дані профілю</Text>
+
+    <View style={styles.fieldWrap}>
+      <View style={styles.inputBlock}>
+        <Text style={styles.label}>Імʼя</Text>
+        <TextInput
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Наприклад: Надя"
+          placeholderTextColor={PAL.placeholder}
+          style={styles.input}
+          autoCapitalize="words"
+          returnKeyType="done"
+        />
+      </View>
 
                 <View style={[styles.inputBlock, { opacity: 0.92 }]}>
                   <Text style={styles.label}>Електронна пошта</Text>

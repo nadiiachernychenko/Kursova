@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
 import { ListItem } from "../../components/ListItem";
 import { SupportSheet } from "../../components/SupportSheet";
 
@@ -11,6 +13,11 @@ import { useT } from "../../lib/i18n";
 import { useAppTheme } from "../../lib/theme";
 import { supabase } from "../../lib/supabase";
 
+import type { MoreStackParamList } from "../../navigation/MoreStack";
+import { useEduProfile } from "../../lib/useEduProfile";
+
+type Nav = NativeStackNavigationProp<MoreStackParamList>;
+
 type MyEcoLevelRow = {
   user_id: string;
   days_in_app: number;
@@ -19,16 +26,23 @@ type MyEcoLevelRow = {
 };
 
 export default function MoreScreen() {
-  const nav = useNavigation<any>();
+  const nav = useNavigation<Nav>();
   const t = useT();
   const { colors } = useAppTheme();
 
   const { theme, lang, remindersEnabled, setRemindersEnabled } = useSettings();
   const [supportOpen, setSupportOpen] = useState(false);
 
-const [profileName, setProfileName] = useState<string>("");
-const [profileLoading, setProfileLoading] = useState(true);
+  const [profileName, setProfileName] = useState<string>("");
+  const [profileLoading, setProfileLoading] = useState(true);
   const [ecoRow, setEcoRow] = useState<MyEcoLevelRow | null>(null);
+
+  const { expertUnlocked, refresh: refreshEdu } = useEduProfile();
+
+  useEffect(() => {
+    refreshEdu();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -36,7 +50,10 @@ const [profileLoading, setProfileLoading] = useState(true);
     (async () => {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData?.user;
-      if (!user) return;
+      if (!user) {
+        if (alive) setProfileLoading(false);
+        return;
+      }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -47,12 +64,11 @@ const [profileLoading, setProfileLoading] = useState(true);
       if (!alive) return;
 
       if (profile?.first_name?.trim()) setProfileName(profile.first_name.trim());
-          else if (user.user_metadata?.full_name?.trim()) setProfileName(user.user_metadata.full_name.trim());
-
+      else if (user.user_metadata?.full_name?.trim()) setProfileName(user.user_metadata.full_name.trim());
       else if (user.email) setProfileName(user.email.split("@")[0]);
-    else setProfileName("");
-        setProfileLoading(false);
+      else setProfileName("");
 
+      setProfileLoading(false);
     })();
 
     return () => {
@@ -117,14 +133,12 @@ const [profileLoading, setProfileLoading] = useState(true);
 
   const logout = async () => {
     setSupportOpen(false);
-    console.log("LOGOUT pressed");
-    const r = await supabase.auth.signOut();
-    console.log("signOut", r);
+    await supabase.auth.signOut();
   };
 
-  const go = (routeName: string) => {
+  const go = <T extends keyof MoreStackParamList>(routeName: T) => {
     try {
-      nav.navigate(routeName);
+      nav.navigate(routeName as any);
     } catch {}
   };
 
@@ -138,7 +152,7 @@ const [profileLoading, setProfileLoading] = useState(true);
           >
             <Text style={[styles.topTitle, { color: colors.textOnDark }]}>{t("profile")}</Text>
             <Text style={[styles.topSub, { color: colors.muted }]} numberOfLines={1}>
-   {profileLoading ? "" : (profileName || "Користувач")}
+              {profileLoading ? "" : profileName || "Користувач"}
             </Text>
           </Pressable>
 
@@ -154,6 +168,16 @@ const [profileLoading, setProfileLoading] = useState(true);
         </View>
 
         <Text style={[styles.pandaLine, { color: colors.textOnDark }]}>{pandaLine}</Text>
+
+        {/* ✅ NEW: PRO / Eco-expert */}
+        <Text style={[styles.section, { color: colors.muted }]}>PRO</Text>
+
+        <ListItem
+          icon="sparkles"
+          title="Eco-експерт"
+          subtitle={expertUnlocked ? "Відкрито ✅" : "Закрито • відкрий у Центрі доступу"}
+          onPress={() => go("EcoExpertHub")}
+        />
 
         <Text style={[styles.section, { color: colors.muted }]}>{t("userSection")}</Text>
 
