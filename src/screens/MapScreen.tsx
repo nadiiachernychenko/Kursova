@@ -12,7 +12,6 @@ import {
   Platform,
 } from "react-native";
 import MapView, { Marker, Region, PROVIDER_GOOGLE } from "react-native-maps";
-import ClusteredMapView from "react-native-map-clustering";
 import * as Location from "expo-location";
 import { CATEGORIES, type WasteCategoryId } from "../data/sorting";
 import { supabase } from "../lib/supabase";
@@ -40,17 +39,43 @@ const KYIV: Region = {
   latitudeDelta: 0.12,
   longitudeDelta: 0.12,
 };
-
 function norm(s: string) {
   return (s ?? "").toLowerCase().trim();
 }
+const getCategoryTone = (id: string, title: string) => {
+  const key = `${id} ${title}`.toLowerCase();
 
+  if (key.includes("пап") || key.includes("paper")) {
+    return { color: "#C79A3B", bg: "#FFF7E6" };
+  }
+
+  if (key.includes("пласт") || key.includes("plastic")) {
+    return { color: "#4D9C79", bg: "#EEF8F2" };
+  }
+
+  if (key.includes("скл") || key.includes("glass")) {
+    return { color: "#6B9CCF", bg: "#F1F7FD" };
+  }
+
+  if (key.includes("мет") || key.includes("metal")) {
+    return { color: "#8A9499", bg: "#F3F5F6" };
+  }
+
+  if (key.includes("орган") || key.includes("organic")) {
+    return { color: "#6FA05C", bg: "#F0F7EC" };
+  }
+
+  if (key.includes("елект") || key.includes("elect")) {
+    return { color: "#8C79C9", bg: "#F4F1FB" };
+  }
+
+  return { color: "#4D9C79", bg: "#EEF8F2" };
+};
 export default function MapScreen({ route }: any) {
   const navigation = useNavigation<any>();
   const mapRef = useRef<MapView>(null);
 
-  const [mapReady, setMapReady] = useState(false);
-
+const [mapReady, setMapReady] = useState(false);
   const [selected, setSelected] = useState<WasteCategoryId | "all">("all");
   const [selectedPoint, setSelectedPoint] = useState<EcoPoint | null>(null);
 
@@ -78,7 +103,6 @@ export default function MapScreen({ route }: any) {
           setLoadingGeo(false);
           return;
         }
-
         const loc = await Location.getCurrentPositionAsync({});
         const reg: Region = {
           latitude: loc.coords.latitude,
@@ -141,17 +165,48 @@ export default function MapScreen({ route }: any) {
   }, [selected, loadPoints, focusOnly]);
 
   const animateToPoint = useCallback((p: EcoPoint) => {
-    const region: Region = {
-      latitude: p.lat,
-      longitude: p.lng,
+  const region: Region = {
+    latitude: p.lat,
+    longitude: p.lng,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  };
+
+  requestAnimationFrame(() => {
+    mapRef.current?.animateToRegion(region, 900);
+  });
+}, []);
+
+const goToMe = useCallback(async () => {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      setPermissionDenied(true);
+      return;
+    }
+
+    const loc = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+    const reg: Region = {
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
       latitudeDelta: 0.01,
       longitudeDelta: 0.01,
     };
 
+    setPermissionDenied(false);
+    setUserRegion(reg);
+
     requestAnimationFrame(() => {
-      mapRef.current?.animateToRegion(region, 900);
+      mapRef.current?.animateToRegion(reg, 900);
     });
-  }, []);
+  } catch (e: any) {
+    setError(e?.message ?? "Не вдалося отримати геолокацію");
+  }
+}, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -230,40 +285,8 @@ export default function MapScreen({ route }: any) {
   const activeFilterTitle = useMemo(() => {
     if (selected === "all") return "Усі категорії";
     const c = CATEGORIES.find((x) => x.id === selected);
-    return c ? `${c.emoji} ${c.title}` : "Фільтр";
+return c ? c.title : "Фільтр";
   }, [selected]);
-
-  const renderCluster = useCallback((cluster: any) => {
-    const { id, geometry, properties } = cluster;
-    const count: number = properties.point_count;
-
-    const coordinate = {
-      latitude: geometry.coordinates[1],
-      longitude: geometry.coordinates[0],
-    };
-
-    return (
-      <Marker
-        key={`cluster-${id}`}
-        coordinate={coordinate}
-        tracksViewChanges={true}
-        anchor={{ x: 0.5, y: 0.5 }}
-      >
-        <View collapsable={false} renderToHardwareTextureAndroid style={styles.clusterOuter}>
-          <View style={styles.clusterInner}>
-            <Text
-              style={styles.clusterText}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.75}
-            >
-              {String(count)}
-            </Text>
-          </View>
-        </View>
-      </Marker>
-    );
-  }, []);
 
   return (
     <View style={styles.container}>
@@ -279,7 +302,7 @@ export default function MapScreen({ route }: any) {
           </View>
         ) : (
           <>
-            <ClusteredMapView
+            <MapView
               ref={mapRef}
               onMapReady={() => setMapReady(true)}
               style={StyleSheet.absoluteFill}
@@ -287,38 +310,38 @@ export default function MapScreen({ route }: any) {
               showsUserLocation={false}
               showsMyLocationButton={false}
               onPress={() => setSelectedPoint(null)}
-              radius={Platform.OS === "ios" ? 40 : 50}
-              animationEnabled
-              renderCluster={renderCluster}
               provider={PROVIDER_GOOGLE}
             >
-              {userRegion && !permissionDenied ? (
-                <Marker
-                  coordinate={{
-                    latitude: userRegion.latitude,
-                    longitude: userRegion.longitude,
-                  }}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  tracksViewChanges={false}
-                >
-                  <View style={styles.userDotOuter}>
-                    <View style={styles.userDotInner} />
-                  </View>
-                </Marker>
-              ) : null}
+            {userRegion && !permissionDenied ? (
+  <Marker
+    coordinate={{
+      latitude: userRegion.latitude,
+      longitude: userRegion.longitude,
+    }}
+    anchor={{ x: 0.5, y: 0.5 }}
+tracksViewChanges={true}
+    zIndex={9999}
+  >
+    <View style={styles.userDotWrapper}>
+      <View style={styles.userDotOuter}>
+        <View style={styles.userDotInner} />
+      </View>
+    </View>
+  </Marker>
+) : null}
 
-              {points.map((p) => (
-                <Marker
-                  key={p.id}
-                  coordinate={{ latitude: p.lat, longitude: p.lng }}
-                  title={p.name}
-                  description={p.address}
-                  onPress={() => setSelectedPoint(p)}
-                  tracksViewChanges={false}
-                />
-              ))}
-            </ClusteredMapView>
-
+            {points.map((p) => (
+  <Marker
+    key={p.id}
+    coordinate={{
+      latitude: Number(p.lat),
+      longitude: Number(p.lng),
+    }}
+    onPress={() => setSelectedPoint(p)}
+    image={require("../../assets/marker-green-96.png")}
+  />
+))}
+           </MapView>
             <View style={styles.topOverlay}>
               <View style={styles.headerCard}>
                 <View style={styles.actionsRow}>
@@ -341,11 +364,11 @@ export default function MapScreen({ route }: any) {
 
             <View style={styles.fabs}>
               <Pressable
-                style={[styles.fab, styles.fabPrimary]}
-                onPress={() => mapRef.current?.animateToRegion(userRegion ?? KYIV, 900)}
-              >
-                <Text style={styles.fabText}>Я</Text>
-              </Pressable>
+  style={[styles.fab, styles.fabPrimary]}
+  onPress={goToMe}
+>
+  <Text style={styles.fabText}>Я</Text>
+</Pressable>
 
               <Pressable
                 style={styles.fab}
@@ -432,56 +455,73 @@ export default function MapScreen({ route }: any) {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>Фільтр</Text>
 
-            <ScrollView
-              style={{ maxHeight: 360 }}
-              contentContainerStyle={{ paddingVertical: 6 }}
-              showsVerticalScrollIndicator={false}
-            >
-              <Pressable
-                style={[
-                  styles.modalRow,
-                  selected === "all" && styles.modalRowActive,
-                ]}
-                onPress={() => {
-                  setFocusOnly(false);
-                  setSelected("all");
-                  setFilterOpen(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalRowText,
-                    selected === "all" && styles.modalRowTextActive,
-                  ]}
-                >
-                  ✨ Усі категорії
-                </Text>
-              </Pressable>
+          <ScrollView
+  style={{ maxHeight: 390 }}
+  contentContainerStyle={{ paddingVertical: 6, gap: 8 }}
+  showsVerticalScrollIndicator={false}
+>
+  <Pressable
+    style={[
+      styles.modalCategoryRow,
+      selected === "all" && styles.modalCategoryRowActive,
+    ]}
+    onPress={() => {
+      setFocusOnly(false);
+      setSelected("all");
+      setFilterOpen(false);
+    }}
+  >
+    <View style={[styles.modalCategoryColor, { backgroundColor: "#4D9C79" }]} />
 
-              {CATEGORIES.map((c) => {
-                const active = selected === c.id;
-                return (
-                  <Pressable
-                    key={c.id}
-                    style={[styles.modalRow, active && styles.modalRowActive]}
-                    onPress={() => {
-                      setFocusOnly(false);
-                      setSelected(c.id);
-                      setFilterOpen(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.modalRowText,
-                        active && styles.modalRowTextActive,
-                      ]}
-                    >
-                      {c.emoji} {c.title}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+    <Text
+      style={[
+        styles.modalCategoryTitle,
+        selected === "all" && styles.modalCategoryTitleActive,
+      ]}
+    >
+      Усі категорії
+    </Text>
+  </Pressable>
+
+  {CATEGORIES.map((c) => {
+  const active = selected === c.id;
+  const tone = getCategoryTone(c.id, c.title);
+
+  return (
+    <Pressable
+      key={c.id}
+      style={[
+        styles.modalCategoryRow,
+        {
+          backgroundColor: tone.bg,
+        },
+        active && styles.modalCategoryRowActive,
+      ]}
+      onPress={() => {
+        setFocusOnly(false);
+        setSelected(c.id);
+        setFilterOpen(false);
+      }}
+    >
+      <View
+        style={[
+          styles.modalCategoryColor,
+          { backgroundColor: tone.color },
+        ]}
+      />
+
+      <Text
+        style={[
+          styles.modalCategoryTitle,
+          active && styles.modalCategoryTitleActive,
+        ]}
+      >
+        {c.title}
+      </Text>
+    </Pressable>
+  );
+})}
+</ScrollView>
 
             <Pressable style={styles.modalClose} onPress={() => setFilterOpen(false)}>
               <Text style={styles.modalCloseText}>Закрити</Text>
@@ -497,61 +537,68 @@ export default function MapScreen({ route }: any) {
         onRequestClose={() => setSearchOpen(false)}
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setSearchOpen(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Пошук</Text>
+          <Pressable style={styles.searchModalCard} onPress={() => {}}>
+  <Text style={styles.searchModalTitle}>Пошук</Text>
+  <Text style={styles.searchModalSub}>
+    Знайди пункт за назвою або адресою
+  </Text>
 
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Назва або адреса…"
-              placeholderTextColor="rgba(29,67,55,0.42)"
-              style={styles.searchInput}
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
+  <View style={styles.searchInputWrap}>
+    <TextInput
+      value={query}
+      onChangeText={setQuery}
+      placeholder="Тиць сюди"
+      placeholderTextColor="#8DA096"
+      style={styles.searchInputNew}
+      autoCorrect={false}
+      autoCapitalize="none"
+    />
+  </View>
 
-            <View style={styles.suggestBox}>
-              {query.trim().length === 0 ? (
-                <Text style={styles.suggestEmpty}>Введи запит — покажу варіанти</Text>
-              ) : suggestions.length === 0 ? (
-                <Text style={styles.suggestEmpty}>Нічого не знайдено</Text>
-              ) : (
-                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-                  {suggestions.map((p) => (
-                    <Pressable
-                      key={p.id}
-                      onPress={() => {
-                        setSelectedPoint(p);
-                        setSearchOpen(false);
-                        animateToPoint(p);
-                      }}
-                      style={({ pressed }) => [
-                        styles.suggestRow,
-                        { opacity: pressed ? 0.72 : 1 },
-                      ]}
-                    >
-                      <Text style={styles.suggestTitle} numberOfLines={1}>
-                        {p.name}
-                      </Text>
-                      <Text style={styles.suggestSub} numberOfLines={1}>
-                        {p.address}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              )}
+<View style={[styles.suggestBox, { marginTop: 10 }]}>
+      {query.trim().length === 0 ? (null) : suggestions.length === 0 ? (
+      <Text style={styles.suggestEmpty}>Нічого не знайдено</Text>
+    ) : (
+      <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+        {suggestions.map((p) => (
+          <Pressable
+            key={p.id}
+            onPress={() => {
+              setSelectedPoint(p);
+              setSearchOpen(false);
+              animateToPoint(p);
+            }}
+            style={({ pressed }) => [
+              styles.searchResultRow,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <View style={styles.searchDot} />
+
+            <View style={styles.searchTextBox}>
+              <Text style={styles.searchTitle} numberOfLines={1}>
+                {p.name}
+              </Text>
+              <Text style={styles.searchAddress} numberOfLines={1}>
+                {p.address}
+              </Text>
             </View>
-
-            <Pressable
-              style={styles.modalClose}
-              onPress={() => {
-                setSearchOpen(false);
-                setQuery("");
-              }}
-            >
-              <Text style={styles.modalCloseText}>Закрити</Text>
-            </Pressable>
           </Pressable>
+        ))}
+      </ScrollView>
+    )}
+  </View>
+
+  <Pressable
+    style={styles.searchCloseBtn}
+    onPress={() => {
+      setSearchOpen(false);
+      setQuery("");
+    }}
+  >
+    <Text style={styles.searchCloseText}>Закрити</Text>
+  </Pressable>
+</Pressable>
         </Pressable>
       </Modal>
     </View>
@@ -604,23 +651,45 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
+modalCategoryRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  minHeight: 48,
+  borderRadius: 18,
+  paddingHorizontal: 12,
+},
 
-  topOverlay: {
-    position: "absolute",
-    top: 6,
-    left: 12,
-    right: 12,
-  },
+modalCategoryRowActive: {
+  borderColor: "rgba(77,156,121,0.35)",
+  backgroundColor: "#F3FAF6",
+},
+modalCategoryTitle: {
+  flex: 1,
+  fontSize: 14,
+  fontWeight: "800",
+  color: "#1D4034",
+  fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
+},
 
-  headerCard: {
-    backgroundColor: "rgba(255,255,255,0.97)",
-    borderRadius: 22,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: "rgba(76,152,120,0.10)",
-    ...shadow,
-  },
+modalCategoryTitleActive: {
+  color: "#3B8868",
+},
+
+topOverlay: {
+  position: "absolute",
+  top: 10,
+  left: 14,
+  right: 14,
+},
+
+headerCard: {
+  backgroundColor: "rgba(255,255,255,0.96)",
+  borderRadius: 24,
+  padding: 10,
+  borderWidth: 1,
+  borderColor: "rgba(76,152,120,0.12)",
+  ...shadow,
+},
 
   actionsRow: {
     flexDirection: "row",
@@ -628,17 +697,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  filterBtn: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: 16,
-    backgroundColor: "#EEF7F1",
-    borderWidth: 1,
-    borderColor: "rgba(76,152,120,0.14)",
-    paddingHorizontal: 14,
-    justifyContent: "center",
-  },
-
+filterBtn: {
+  flex: 1,
+  minHeight: 44,
+  borderRadius: 16,
+  backgroundColor: "#EFF8F2",
+  borderWidth: 1,
+  borderColor: "rgba(76,152,120,0.14)",
+  paddingHorizontal: 14,
+  justifyContent: "center",
+},
   filterBtnText: {
     fontSize: 14,
     fontWeight: "700",
@@ -646,27 +714,27 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
 
-  iconBtnSoft: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    backgroundColor: "#F5FAF7",
-    borderWidth: 1,
-    borderColor: "rgba(76,152,120,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+iconBtnSoft: {
+  width: 44,
+  height: 44,
+  borderRadius: 16,
+  backgroundColor: "#F5FAF7",
+  borderWidth: 1,
+  borderColor: "rgba(76,152,120,0.12)",
+  alignItems: "center",
+  justifyContent: "center",
+},
 
-  iconBtnGreen: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    backgroundColor: "#4D9C79",
-    borderWidth: 1,
-    borderColor: "#4D9C79",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+iconBtnGreen: {
+  width: 44,
+  height: 44,
+  borderRadius: 16,
+  backgroundColor: "#4D9C79",
+  borderWidth: 1,
+  borderColor: "#4D9C79",
+  alignItems: "center",
+  justifyContent: "center",
+},
 
   iconBtnText: {
     fontSize: 16,
@@ -681,38 +749,28 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
+pointMarker: {
+  width: 30,
+  height: 30,
+  borderRadius: 15,
+  backgroundColor: "#4D9C79",
+  borderWidth: 3,
+  borderColor: "#FFFFFF",
+  alignItems: "center",
+  justifyContent: "center",
+  shadowColor: "#0F2D24",
+  shadowOpacity: 0.22,
+  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 6,
+},
 
-  clusterOuter: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.95)",
-    alignItems: "center",
-    justifyContent: "center",
-    ...shadow,
-  },
-
-  clusterInner: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#4D9C79",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  clusterText: {
-    color: "#FFFFFF",
-    fontWeight: "900",
-    fontSize: 15,
-    includeFontPadding: false,
-    textAlign: "center",
-    textAlignVertical: "center",
-    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
-  },
-
+pointMarkerDot: {
+  width: 8,
+  height: 8,
+  borderRadius: 4,
+  backgroundColor: "#FFFFFF",
+},
   userDotOuter: {
     width: 28,
     height: 28,
@@ -720,15 +778,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(66,133,244,0.20)",
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  userDotInner: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#4285F4",
-    borderWidth: 2.5,
-    borderColor: "#FFFFFF",
   },
 
   fabs: {
@@ -893,7 +942,12 @@ const styles = StyleSheet.create({
     color: "#1E4134",
     fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
-
+modalCategoryColor: {
+  width: 6,
+  height: 28,
+  borderRadius: 999,
+  marginRight: 12,
+},
   sheetBtnTextPrimary: {
     color: "#FFFFFF",
   },
@@ -908,14 +962,108 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
+userDotWrapper: {
+  alignItems: "center",
+  justifyContent: "center",
+},
   closeMiniBtnText: {
     fontSize: 16,
     fontWeight: "800",
     color: "#23483B",
     fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
+searchModalCard: {
+  backgroundColor: "#FFFFFF",
+  borderRadius: 26,
+  padding: 16,
+  borderWidth: 1,
+  borderColor: "rgba(76,152,120,0.12)",
+},
 
+searchModalTitle: {
+  fontSize: 20,
+  fontWeight: "900",
+  color: "#173626",
+},
+
+searchModalSub: {
+  marginTop: 4,
+  fontSize: 13,
+  color: "#7A8F86",
+},
+
+searchInputWrap: {
+  marginTop: 14,
+  minHeight: 46,
+  borderRadius: 18,
+  backgroundColor: "#F4FBF6",
+  borderWidth: 1,
+  borderColor: "rgba(76,152,120,0.16)",
+  paddingHorizontal: 14,
+  justifyContent: "center",
+},
+
+searchInputNew: {
+  fontSize: 14,
+  fontWeight: "700",
+  color: "#24483B",
+},
+
+searchResultRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  minHeight: 52,
+  borderRadius: 16,
+  backgroundColor: "#F6FBF8",
+  paddingHorizontal: 12,
+  marginTop: 8,
+  borderWidth: 1,
+  borderColor: "rgba(76,152,120,0.08)",
+},
+
+searchDot: {
+  width: 6,
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: "#4D9C79",
+  marginRight: 10,
+},
+
+searchTextBox: {
+  flex: 1,
+},
+
+searchTitle: {
+  fontSize: 14,
+  fontWeight: "800",
+  color: "#1D4034",
+},
+
+searchAddress: {
+  marginTop: 2,
+  fontSize: 12,
+  color: "#7A8F86",
+},
+
+searchCloseBtn: {
+  marginTop: 14,
+  minHeight: 44,
+  borderRadius: 18,
+  backgroundColor: "#4D9C79",
+  alignItems: "center",
+  justifyContent: "center",
+  shadowColor: "#000",
+  shadowOpacity: 0.08,
+  shadowRadius: 6,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 3,
+},
+
+searchCloseText: {
+  color: "#FFFFFF",
+  fontWeight: "800",
+  fontSize: 14,
+},
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(15,22,20,0.28)",
@@ -940,32 +1088,14 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
   },
 
-  modalRow: {
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.07)",
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 13,
-    backgroundColor: "#FFFFFF",
-    marginBottom: 8,
-  },
-
-  modalRowActive: {
-    borderColor: "#4D9C79",
-    backgroundColor: "#EFF8F2",
-  },
-
-  modalRowText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#1D4034",
-    fontFamily: Platform.OS === "ios" ? "Avenir Next" : "sans-serif-medium",
-  },
-
-  modalRowTextActive: {
-    color: "#3B8868",
-  },
-
+userDotInner: {
+  width: 12,
+  height: 12,
+  borderRadius: 6,
+  backgroundColor: "#3478F6", // сама точка
+  borderWidth: 2,
+  borderColor: "#FFFFFF",
+},
   modalClose: {
     alignSelf: "flex-end",
     marginTop: 8,
